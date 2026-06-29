@@ -1,7 +1,7 @@
 // app/api/astro/fetch/route.js
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase/firebase-admin';
-import { fetchPanchang, fetchAllHoroscopes } from '@/lib/astro/vedicApi';
+import { fetchAllPanchangData, fetchAllHoroscopes } from '@/lib/astro/vedicApi';
 
 const SECRET_KEY = process.env.CRON_SECRET_KEY || 'your-secret-key';
 const LOCATIONS = {
@@ -23,11 +23,7 @@ export async function POST(request) {
     console.log(`🔄 Fetching astro data for ${date} at ${location}...`);
 
     // Fetch Panchang
-    const panchangData = await fetchPanchang(
-      LOCATIONS[location].lat,
-      LOCATIONS[location].lon,
-      'en'
-    );
+    const panchangData = await fetchAllPanchangData(date, location, 'en');
 
     // Fetch Horoscopes for all languages
     const languages = ['en', 'hi'];
