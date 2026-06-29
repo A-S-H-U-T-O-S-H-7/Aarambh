@@ -1,26 +1,92 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Dark mode variant - FIXED */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Custom theme colors */
+@theme {
+  /* Primary Colors */
+  --color-saffron: #FF7A00;
+  --color-gold: #F4B400;
+  --color-cream-50: #FFF8E7;
+  --color-cream-100: #FFF3D6;
+  --color-cream-200: #FFE8B3;
+  --color-warm-white: #FEFCF3;
+  
+  /* Neutral Colors */
+  --color-brown-900: #2C1810;
+  --color-brown-800: #4A2C1A;
+  --color-brown-700: #6B3F2A;
+  --color-brown-600: #8B5E3C;
+  
+  /* Accent Colors */
+  --color-divine-red: #D32F2F;
+  --color-sacred-green: #2E7D32;
+  --color-royal-purple: #6A1B9A;
+  --color-sky-blue: #4FC3F7;
+  
+  /* Gradients */
+  --gradient-divine: linear-gradient(135deg, #FF7A00 0%, #F4B400 100%);
+  --gradient-warm: linear-gradient(135deg, #FFF8E7 0%, #FEFCF3 100%);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Base styles - FIXED */
+@layer base {
+  html {
+    @apply bg-cream-50 text-brown-900 transition-colors duration-300;
+  }
+  
+  html.dark {
+    @apply bg-brown-900 text-cream-50;
+  }
+  
+  body {
+    @apply min-h-screen font-sans antialiased;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom utilities */
+@layer utilities {
+  .bg-gradient-divine {
+    background: var(--gradient-divine);
+  }
+  
+  .bg-gradient-warm {
+    background: var(--gradient-warm);
+  }
+  
+  .text-shadow-gold {
+    text-shadow: 0 2px 4px rgba(244, 180, 0, 0.3);
+  }
+  
+  .text-shadow-divine {
+    text-shadow: 0 2px 8px rgba(255, 122, 0, 0.3);
+  }
+  
+  .border-gold-light {
+    border-color: rgba(244, 180, 0, 0.2);
+  }
+  
+  .border-saffron-light {
+    border-color: rgba(255, 122, 0, 0.2);
+  }
+}
+
+/* Scrollbar styling */
+@layer base {
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-cream-100 dark:bg-brown-800;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gold rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-saffron;
+  }
 }

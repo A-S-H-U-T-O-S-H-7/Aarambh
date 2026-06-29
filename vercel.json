@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/astro/fetch",
+      "schedule": "19 0 * * *"
+    }
+  ]
+}

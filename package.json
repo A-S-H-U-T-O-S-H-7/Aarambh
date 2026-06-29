@@ -8,9 +8,22 @@
     "start": "next start"
   },
   "dependencies": {
+    "cookie": "^2.0.0",
+    "date-fns": "^4.4.0",
+    "firebase": "^12.15.0",
+    "firebase-admin": "^14.1.0",
+    "framer-motion": "^12.40.0",
+    "js-cookie": "^3.0.8",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.21.0",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.6.0",
+    "suneditor-react": "^3.6.1",
+    "sweetalert2": "^11.26.25",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
