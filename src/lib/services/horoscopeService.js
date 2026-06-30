@@ -71,9 +71,25 @@ export const getHoroscope = async (sign, date = null) => {
 };
 
 // Get all horoscopes for a date
-export const getAllHoroscopes = async (date = null) => {
+export const getAllHoroscopes = async (date = null, lang = 'en') => {
   try {
     const horoscopeDate = date || new Date().toISOString().split('T')[0];
+
+    if (lang && lang !== 'en') {
+      const apiResults = await fetchAllHoroscopes(lang, horoscopeDate);
+      const horoscopes = {};
+
+      Object.entries(apiResults).forEach(([sign, horoscope]) => {
+        horoscopes[sign] = {
+          sign,
+          date: horoscopeDate,
+          ...horoscope,
+        };
+      });
+
+      return { success: true, horoscopes };
+    }
+
     const q = query(collection(db, HOROSCOPE_COLLECTION), where('date', '==', horoscopeDate));
     const snapshot = await getDocs(q);
     const horoscopes = {};
@@ -82,6 +98,13 @@ export const getAllHoroscopes = async (date = null) => {
       const data = docSnap.data();
       horoscopes[data.sign] = data;
     });
+
+    if (Object.keys(horoscopes).length === 0) {
+      const apiResults = await fetchAllHoroscopes(lang, horoscopeDate);
+      Object.entries(apiResults).forEach(([sign, horoscope]) => {
+        horoscopes[sign] = { sign, date: horoscopeDate, ...horoscope };
+      });
+    }
 
     return { success: true, horoscopes };
   } catch (error) {

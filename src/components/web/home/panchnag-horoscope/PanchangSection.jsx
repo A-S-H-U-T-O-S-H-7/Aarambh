@@ -6,14 +6,53 @@ import { FaCalendarAlt, FaClock, FaHeart, FaOm } from 'react-icons/fa';
 import { GiSunrise, GiSunset, GiSparkles, GiHadesSymbol } from 'react-icons/gi';
 
 
-export default function PanchangSection({ data, language = 'en' }) {
+export default function PanchangSection({ data, language = 'en', mantra = 'ॐ नमः शिवाय' }) {
+  const labels = {
+    en: {
+      title: 'Daily Panchang',
+      date: 'Today',
+      month: 'Month',
+      samvat: 'Samvat',
+      tithi: 'Tithi',
+      nakshatra: 'Nakshatra',
+      karana: 'Karan',
+      yoga: 'Yoga',
+      sunrise: 'Sunrise',
+      sunset: 'Sunset',
+      rahu: 'Rahu Kaal',
+      abhijit: 'Abhijit Muhurat',
+      mantra: 'Mantra of the Day',
+    },
+    hi: {
+      title: 'दैनिक पञ्चाङ्ग',
+      date: 'आज',
+      month: 'माह',
+      samvat: 'संवत',
+      tithi: 'तिथि',
+      nakshatra: 'नक्षत्र',
+      karana: 'करण',
+      yoga: 'योग',
+      sunrise: 'सूर्योदय',
+      sunset: 'सूर्यास्त',
+      rahu: 'राहु काल',
+      abhijit: 'अभिजीत मुहूर्त',
+      mantra: 'आज का मंत्र',
+    },
+  };
+
+  const text = labels[language] || labels.en;
+
   const panchangItems = [
-    { icon: FaCalendarAlt, label: 'Tithi', value: data.tithi, sub: data.tithiDetails },
-    { icon: GiHadesSymbol, label: 'Nakshatra', value: data.nakshatra, sub: data.nakshatraDetails },
-    { icon: GiSunrise, label: 'Sunrise', value: data.sunrise },
-    { icon: GiSunset, label: 'Sunset', value: data.sunset },
-    { icon: FaClock, label: 'Rahu Kaal', value: data.rahuKaal },
-    { icon: GiSparkles, label: 'Abhijit Muhurat', value: data.abhijitMuhurat },
+    { icon: FaCalendarAlt, label: text.month, value: data?.month || '—' },
+    { icon: GiHadesSymbol, label: text.samvat, value: data?.samvat || '—' },
+    { icon: FaCalendarAlt, label: text.tithi, value: data?.tithi || '—', sub: data?.tithiDetails || '' },
+    { icon: GiHadesSymbol, label: text.nakshatra, value: data?.nakshatra || '—', sub: data?.nakshatraDetails || '' },
+    { icon: GiSparkles, label: text.karana, value: data?.karana || data?.karan || '—' },
+    { icon: GiSparkles, label: text.yoga, value: data?.yoga || data?.yog || '—' },
+    { icon: GiSunrise, label: text.sunrise, value: data?.sunrise || '—' },
+    { icon: GiSunset, label: text.sunset, value: data?.sunset || '—' },
+    { icon: FaClock, label: text.rahu, value: data?.rahuKaal || '—' },
+    { icon: GiSparkles, label: text.abhijit, value: data?.abhijitMuhurat || '—' },
   ];
 
   // 3 brand-tied tones, cycled — gold, terracotta, muted rose. Cohesive instead of rainbow.
@@ -62,17 +101,17 @@ export default function PanchangSection({ data, language = 'en' }) {
               </div>
               <div className="min-w-0">
                 <h2 className="text-base sm:text-xl font-bold text-[#3D2B1A] dark:text-[#F5EAD9] truncate">
-                  Daily Panchang
+                  {text.title}
                 </h2>
                 <p className="text-[11px] sm:text-xs text-[#80694F] dark:text-[#B8A088] truncate">
-                  {data.date}
+                  {data?.date || text.date}
                 </p>
               </div>
             </div>
-            {data.specialEvent && (
+            {(data?.specialEvent || data?.festivals?.[0]?.festival_name) && (
               <div className="px-2.5 py-1 bg-gradient-to-r from-[#C0392B]/15 to-[#F4B400]/15 dark:from-[#C0392B]/25 dark:to-[#F4B400]/25 rounded-full border border-[#F4B400]/20 shrink-0">
                 <span className="text-[10px] sm:text-xs font-medium text-[#C0392B] dark:text-[#F4B400] whitespace-nowrap">
-                  {data.specialEvent}
+                  {data?.specialEvent || data?.festivals?.[0]?.festival_name}
                 </span>
               </div>
             )}
@@ -121,10 +160,10 @@ export default function PanchangSection({ data, language = 'en' }) {
               </div>
               <div className="min-w-0">
                 <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#8C7456] dark:text-[#9C8569]">
-                  Mantra of the Day
+                  {text.mantra}
                 </p>
                 <p className="text-xs sm:text-sm font-serif text-[#B8860B] dark:text-[#F4B400] font-medium">
-                  ॐ नमः शिवाय
+                  {mantra}
                 </p>
               </div>
             </div>

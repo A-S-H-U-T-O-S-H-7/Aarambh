@@ -347,6 +347,102 @@ export const fetchSunset = async (date = null, lat = '28.6139', lon = '77.2090',
   }
 };
 
+const normalizePanchangValue = (value) => {
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.filter((item) => item !== undefined && item !== null && item !== '').join(', ');
+  if (typeof value === 'object') {
+    return (
+      value.name ||
+      value.tithi_name ||
+      value.tithiName ||
+      value.nakshatra_name ||
+      value.nakshatraName ||
+      value.tithi_detail ||
+      value.tithiDetail ||
+      value.nakshatra_detail ||
+      value.nakshatraDetail ||
+      value.meaning ||
+      value.special ||
+      value.type ||
+      value.start ||
+      value.end ||
+      ''
+    );
+  }
+  return String(value);
+};
+
+const getNestedValue = (obj, paths, fallback = '') => {
+  for (const path of paths) {
+    const value = path.split('.').reduce((acc, key) => acc?.[key], obj);
+    const normalized = normalizePanchangValue(value);
+    if (normalized !== '') {
+      return normalized;
+    }
+  }
+
+  return fallback;
+};
+
+const normalizeDailyPanchangResponse = (data, fallback = {}) => {
+  const response = data?.response || data?.data || data?.result || data?.panchang || data || {};
+  const panchang = response?.panchang || response?.daily_panchang || response?.data || response || {};
+
+  return {
+    month: getNestedValue(panchang, ['month', 'month_name', 'monthName'], getNestedValue(response, ['month', 'month_name', 'monthName'], fallback.month || '')),
+    samvat: getNestedValue(panchang, ['samvat', 'samvat_year', 'samvatYear'], getNestedValue(response, ['samvat', 'samvat_year', 'samvatYear'], fallback.samvat || '')),
+    tithi: getNestedValue(panchang, ['tithi', 'tithi_name', 'tithiName'], getNestedValue(response, ['tithi', 'tithi_name', 'tithiName'], fallback.tithi || '')),
+    tithiDetails: getNestedValue(panchang, ['tithi_details', 'tithiDetail', 'tithi_detail'], getNestedValue(response, ['tithi_details', 'tithiDetail', 'tithi_detail'], fallback.tithiDetails || '')),
+    nakshatra: getNestedValue(panchang, ['nakshatra', 'nakshatra_name', 'nakshatraName'], getNestedValue(response, ['nakshatra', 'nakshatra_name', 'nakshatraName'], fallback.nakshatra || '')),
+    nakshatraDetails: getNestedValue(panchang, ['nakshatra_details', 'nakshatraDetail', 'nakshatra_detail'], getNestedValue(response, ['nakshatra_details', 'nakshatraDetail', 'nakshatra_detail'], fallback.nakshatraDetails || '')),
+    yoga: getNestedValue(panchang, ['yoga', 'yog', 'yogName'], getNestedValue(response, ['yoga', 'yog', 'yogName'], fallback.yoga || '')),
+    karana: getNestedValue(panchang, ['karana', 'karan', 'karanaName'], getNestedValue(response, ['karana', 'karan', 'karanaName'], fallback.karana || '')),
+    sunrise: getNestedValue(panchang, ['sunrise', 'sun_rise', 'sunRise'], getNestedValue(response, ['sunrise', 'sun_rise', 'sunRise'], fallback.sunrise || '')),
+    sunset: getNestedValue(panchang, ['sunset', 'sun_set', 'sunSet'], getNestedValue(response, ['sunset', 'sun_set', 'sunSet'], fallback.sunset || '')),
+    rahuKaal: getNestedValue(panchang, ['rahu_kaal', 'rahuKaal'], getNestedValue(response, ['rahu_kaal', 'rahuKaal'], fallback.rahuKaal || '')),
+    abhijitMuhurat: getNestedValue(panchang, ['abhijit_muhurat', 'abhijitMuhurat'], getNestedValue(response, ['abhijit_muhurat', 'abhijitMuhurat'], fallback.abhijitMuhurat || '')),
+    amritKaal: getNestedValue(panchang, ['amrit_kaal', 'amritKaal'], getNestedValue(response, ['amrit_kaal', 'amritKaal'], fallback.amritKaal || '')),
+    specialEvent: getNestedValue(panchang, ['special_event', 'specialEvent'], getNestedValue(response, ['special_event', 'specialEvent'], fallback.specialEvent || '')),
+  };
+};
+
+export const fetchDailyPanchang = async (date = null, lat = '28.6139', lon = '77.2090', tz = 5.5, lang = 'en') => {
+  try {
+    if (!cleanApiKey) {
+      return { success: false, month: '', samvat: '', tithi: '', tithiDetails: '', nakshatra: '', nakshatraDetails: '', yoga: '', karana: '', sunrise: '', sunset: '', rahuKaal: '', abhijitMuhurat: '', amritKaal: '', specialEvent: '' };
+    }
+
+    const params = new URLSearchParams({
+      api_key: cleanApiKey,
+      date: formatApiDate(date),
+      tz: String(tz),
+      lat: String(lat),
+      lon: String(lon),
+      lang: lang || 'en',
+    });
+
+    const endpoint = `${PANCHANG_BASE_URL}/panchang?${params.toString()}`;
+    const response = await fetch(endpoint, { cache: 'no-store' });
+    if (!response.ok) {
+      return { success: false, month: '', samvat: '', tithi: '', tithiDetails: '', nakshatra: '', nakshatraDetails: '', yoga: '', karana: '', sunrise: '', sunset: '', rahuKaal: '', abhijitMuhurat: '', amritKaal: '', specialEvent: '' };
+    }
+
+    const data = await response.json();
+    if (data.status === 200 && (data.response || data.data || data.result || data.panchang)) {
+      return {
+        success: true,
+        ...normalizeDailyPanchangResponse(data),
+      };
+    }
+
+    return { success: false, month: '', samvat: '', tithi: '', tithiDetails: '', nakshatra: '', nakshatraDetails: '', yoga: '', karana: '', sunrise: '', sunset: '', rahuKaal: '', abhijitMuhurat: '', amritKaal: '', specialEvent: '' };
+  } catch (error) {
+    console.error('fetchDailyPanchang error:', error.message);
+    return { success: false, month: '', samvat: '', tithi: '', tithiDetails: '', nakshatra: '', nakshatraDetails: '', yoga: '', karana: '', sunrise: '', sunset: '', rahuKaal: '', abhijitMuhurat: '', amritKaal: '', specialEvent: '' };
+  }
+};
+
 // Fetch Choghadiya Muhurta
 export const fetchChoghadiya = async (date = null, lat = '28.6139', lon = '77.2090', tz = 5.5, time = '06:00', lang = 'en') => {
   try {
@@ -506,7 +602,8 @@ export const fetchAllPanchangData = async (date = null, location = 'delhi', lang
   const loc = LOCATIONS[location] || LOCATIONS.delhi;
   
   try {
-    const [festivals, sunrise, sunset, choghadiya, hora] = await Promise.all([
+    const [panchang, festivals, sunrise, sunset, choghadiya, hora] = await Promise.all([
+      fetchDailyPanchang(date, loc.lat, loc.lon, loc.tz, lang),
       fetchFestivals(date, loc.lat, loc.lon, loc.tz, lang),
       fetchSunrise(date, loc.lat, loc.lon, loc.tz, '06:00', lang),
       fetchSunset(date, loc.lat, loc.lon, loc.tz, '18:00', lang),
@@ -516,10 +613,22 @@ export const fetchAllPanchangData = async (date = null, location = 'delhi', lang
 
     return {
       success: true,
+      month: panchang.month || '',
+      samvat: panchang.samvat || '',
+      tithi: panchang.tithi || '',
+      tithiDetails: panchang.tithiDetails || '',
+      nakshatra: panchang.nakshatra || '',
+      nakshatraDetails: panchang.nakshatraDetails || '',
+      yoga: panchang.yoga || '',
+      karana: panchang.karana || '',
+      sunrise: sunrise.sunrise || panchang.sunrise || '6:30 AM',
+      sunset: sunset.sunset || panchang.sunset || '6:45 PM',
+      rahuKaal: panchang.rahuKaal || '',
+      abhijitMuhurat: panchang.abhijitMuhurat || '',
+      amritKaal: panchang.amritKaal || '',
+      specialEvent: panchang.specialEvent || '',
       festivals: festivals.festivals || [],
       yogas: festivals.yogas || [],
-      sunrise: sunrise.sunrise || '6:30 AM',
-      sunset: sunset.sunset || '6:45 PM',
       choghadiya: choghadiya,
       hora: hora,
     };
@@ -527,10 +636,22 @@ export const fetchAllPanchangData = async (date = null, location = 'delhi', lang
     console.error('fetchAllPanchangData error:', error);
     return {
       success: false,
-      festivals: [],
-      yogas: [],
+      month: '',
+      samvat: '',
+      tithi: '',
+      tithiDetails: '',
+      nakshatra: '',
+      nakshatraDetails: '',
+      yoga: '',
+      karana: '',
       sunrise: '6:30 AM',
       sunset: '6:45 PM',
+      rahuKaal: '',
+      abhijitMuhurat: '',
+      amritKaal: '',
+      specialEvent: '',
+      festivals: [],
+      yogas: [],
       choghadiya: { day: [], night: [] },
       hora: { horas: [] },
     };

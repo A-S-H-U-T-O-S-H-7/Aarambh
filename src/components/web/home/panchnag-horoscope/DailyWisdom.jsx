@@ -7,13 +7,29 @@ import { GiLotus } from 'react-icons/gi';
 import WisdomCard from './WisdomCard';
 import { getTodaysWisdom, wisdomQuotes } from '@/lib/mockWisdomData';
 
-export default function DailyWisdom() {
+const buildWisdomQuote = (source) => {
+  if (!source) return getTodaysWisdom();
+
+  return {
+    id: source.id || 'daily-wisdom',
+    quote: source.quote || source.text || '',
+    author: source.author || 'Aarambh',
+    category: source.category || 'Wisdom',
+    color: source.color || '#D98C1F',
+    bgGradient: source.bgGradient || 'from-[#FFF6E5] via-[#FFFAF0] to-[#FDECC8]',
+    borderColor: source.borderColor || 'border-[#F4B400]/30',
+    tags: source.tags || ['Wisdom', 'Spirituality'],
+    source: source.source || 'Daily Content',
+  };
+};
+
+export default function DailyWisdom({ quoteData = null }) {
   const [currentQuote, setCurrentQuote] = useState(null);
   const [likedQuotes, setLikedQuotes] = useState([]);
 
   useEffect(() => {
-    setCurrentQuote(getTodaysWisdom());
-  }, []);
+    setCurrentQuote(buildWisdomQuote(quoteData));
+  }, [quoteData]);
 
   const handleRefresh = () => {
     const pool = wisdomQuotes.filter((q) => q.id !== currentQuote?.id);

@@ -1,7 +1,7 @@
 // components/web/home/bhajan/BhajanHub.jsx
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,25 +14,113 @@ import {
   FaStepForward,
   FaStepBackward,
 } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 import BhajanCard from './BhajanCard';
 import BhajanPlayerModal from './Bhajanplayermodal';
-import { bhajans } from '@/lib/mockBhajanData';
+import { 
+  getBhajans, 
+  incrementMediaView,
+  toggleMediaLike 
+} from '@/lib/services/mediaService';
+
+// Get unique categories from bhajans
+const getUniqueCategories = (bhajans) => {
+  const categories = new Set();
+  bhajans.forEach(b => {
+    if (b.category) categories.add(b.category);
+  });
+  return Array.from(categories);
+};
+
+// Category emoji mapping
+const categoryEmojis = {
+  krishna: '🪈',
+  shiva: '🔱',
+  hanuman: '🙏',
+  durga: '⚔️',
+  sai: '🕊️',
+  jagannath: '🛕',
+};
 
 const getCategoryEmoji = (category) => {
-  const emojis = { krishna: '🪈', shiva: '🔱', hanuman: '🙏', durga: '⚔️', sai: '🕊️', jagannath: '🛕' };
-  return emojis[category] || '🕉️';
+  return categoryEmojis[category?.toLowerCase()] || '🕉️';
+};
+
+// Helper to extract YouTube video ID and embed URL
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return null;
+  
+  // If it's already an embed URL, return as is
+  if (url.includes('/embed/')) return url;
+  
+  // Extract video ID
+  let videoId = null;
+  if (url.includes('youtu.be/')) {
+    const match = url.match(/youtu\.be\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('watch?v=')) {
+    const match = url.match(/watch\?v=([^&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('/shorts/')) {
+    const match = url.match(/\/shorts\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('youtube.com/embed/')) {
+    return url; // Already an embed URL
+  }
+  
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
 };
 
 export default function BhajanHub() {
+  const [bhajans, setBhajans] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [playingId, setPlayingId] = useState(null);
   const [likedBhajans, setLikedBhajans] = useState([]);
   const [modalBhajan, setModalBhajan] = useState(null);
+  const [categories, setCategories] = useState([]);
 
-  const latestBhajans = [...bhajans].sort((a, b) => b.id - a.id).slice(0, 10);
+  // Fetch data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Get all bhajans
+        const bhajansResult = await getBhajans(20);
+        if (bhajansResult.success) {
+          setBhajans(bhajansResult.bhajans);
+          // Extract unique categories
+          const uniqueCategories = getUniqueCategories(bhajansResult.bhajans);
+          setCategories(uniqueCategories);
+        }
+      } catch (error) {
+        console.error('Error fetching bhajans:', error);
+        toast.error('Failed to load bhajans');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleOpenModal = useCallback((bhajan) => {
+    fetchData();
+  }, []);
+
+  const handleOpenModal = useCallback(async (bhajan) => {
     setModalBhajan(bhajan);
     setPlayingId(bhajan.id);
+    
+    // Increment view count
+    try {
+      await incrementMediaView(bhajan.id);
+      // Update local state
+      setBhajans(prev => 
+        prev.map(b => 
+          b.id === bhajan.id 
+            ? { ...b, views: (b.views || 0) + 1 }
+            : b
+        )
+      );
+    } catch (error) {
+      console.error('Error incrementing view:', error);
+    }
   }, []);
 
   const handleCloseModal = useCallback(() => {
@@ -41,24 +129,52 @@ export default function BhajanHub() {
 
   const handleNext = useCallback(() => {
     if (!modalBhajan) return;
-    const idx = latestBhajans.findIndex((b) => b.id === modalBhajan.id);
-    const next = latestBhajans[(idx + 1) % latestBhajans.length];
+    const idx = bhajans.findIndex((b) => b.id === modalBhajan.id);
+    const next = bhajans[(idx + 1) % bhajans.length];
     setModalBhajan(next);
     setPlayingId(next.id);
-  }, [modalBhajan, latestBhajans]);
+  }, [modalBhajan, bhajans]);
 
   const handlePrev = useCallback(() => {
     if (!modalBhajan) return;
-    const idx = latestBhajans.findIndex((b) => b.id === modalBhajan.id);
-    const prev = latestBhajans[(idx - 1 + latestBhajans.length) % latestBhajans.length];
+    const idx = bhajans.findIndex((b) => b.id === modalBhajan.id);
+    const prev = bhajans[(idx - 1 + bhajans.length) % bhajans.length];
     setModalBhajan(prev);
     setPlayingId(prev.id);
-  }, [modalBhajan, latestBhajans]);
+  }, [modalBhajan, bhajans]);
 
-  const handleLike = useCallback((id) => {
+  const handleLike = useCallback(async (id) => {
+    // Optimistic update
     setLikedBhajans((prev) =>
       prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
     );
+    
+    // Update local state
+    setBhajans(prev => 
+      prev.map(b => 
+        b.id === id 
+          ? { ...b, likes: (b.likes || 0) + 1 }
+          : b
+      )
+    );
+
+    // API call
+    try {
+      await toggleMediaLike(id);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      // Revert on error
+      setLikedBhajans((prev) =>
+        prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
+      );
+      setBhajans(prev => 
+        prev.map(b => 
+          b.id === id 
+            ? { ...b, likes: Math.max(0, (b.likes || 0) - 1) }
+            : b
+        )
+      );
+    }
   }, []);
 
   const handleTogglePlay = useCallback(() => {
@@ -67,6 +183,22 @@ export default function BhajanHub() {
   }, [modalBhajan]);
 
   const isLiked = (id) => likedBhajans.includes(id);
+
+  if (loading) {
+    return (
+      <div className="py-12 flex justify-center items-center">
+        <div className="w-10 h-10 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (bhajans.length === 0) {
+    return (
+      <section className="py-12 text-center">
+        <p className="text-gray-500 dark:text-gray-400">No bhajans available yet.</p>
+      </section>
+    );
+  }
 
   return (
     <section className="py-6 lg:py-8 relative overflow-hidden">
@@ -101,7 +233,7 @@ export default function BhajanHub() {
 
         {/* Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {latestBhajans.map((bhajan) => (
+          {bhajans.map((bhajan) => (
             <BhajanCard
               key={bhajan.id}
               bhajan={bhajan}
@@ -114,7 +246,7 @@ export default function BhajanHub() {
           ))}
         </div>
 
-        {/* See all — centered below grid */}
+        {/* See all */}
         <div className="text-center mt-8">
           <Link
             href="/bhajans"
@@ -125,10 +257,10 @@ export default function BhajanHub() {
         </div>
       </div>
 
-      {/* Mini now-playing bar (shows when modal is closed but song is "playing") */}
+      {/* Mini now-playing bar */}
       <AnimatePresence>
         {playingId && !modalBhajan && (() => {
-          const playing = latestBhajans.find((b) => b.id === playingId);
+          const playing = bhajans.find((b) => b.id === playingId);
           if (!playing) return null;
           return (
             <motion.div
@@ -174,6 +306,8 @@ export default function BhajanHub() {
         isLiked={modalBhajan ? isLiked(modalBhajan.id) : false}
         isPlaying={modalBhajan ? playingId === modalBhajan.id : false}
         onPlay={handleTogglePlay}
+        allBhajans={bhajans}
+        getYouTubeEmbedUrl={getYouTubeEmbedUrl}
       />
     </section>
   );

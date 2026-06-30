@@ -1,13 +1,109 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { GiLotus } from 'react-icons/gi';
 import PanchangSection from './PanchangSection';
 import HoroscopeSection from './HoroscopeSection';
-import { mockPanchang, mockHoroscope } from '@/lib/mockAstroData';
 import DailyWisdom from './DailyWisdom';
+import { mockPanchang, mockHoroscope, zodiacSigns } from '@/lib/mockAstroData';
+import { getPanchangForHomepage } from '@/lib/services/panchangService';
+import { getAllHoroscopes } from '@/lib/services/horoscopeService';
+import { getDailyContent } from '@/lib/services/dailyContentService';
+
+const normalizePanchangData = (data, fallback = mockPanchang) => ({
+  date: data?.date || fallback.date || new Date().toISOString().split('T')[0],
+  tithi: data?.tithi || fallback.tithi || '—',
+  tithiDetails: data?.tithiDetails || fallback.tithiDetails || '',
+  nakshatra: data?.nakshatra || fallback.nakshatra || '—',
+  nakshatraDetails: data?.nakshatraDetails || fallback.nakshatraDetails || '',
+  sunrise: data?.sunrise || fallback.sunrise || '—',
+  sunset: data?.sunset || fallback.sunset || '—',
+  rahuKaal: data?.rahuKaal || fallback.rahuKaal || '—',
+  abhijitMuhurat: data?.abhijitMuhurat || fallback.abhijitMuhurat || '—',
+  specialEvent: data?.specialEvent || data?.festivals?.[0]?.festival_name || fallback.specialEvent || '',
+});
+
+const normalizeHoroscopeData = (horoscopes = {}, fallback = mockHoroscope) => {
+  const normalized = {};
+
+  zodiacSigns.forEach((sign) => {
+    const source = horoscopes[sign.id];
+    normalized[sign.id] = source
+      ? {
+          ...source,
+          prediction: source.prediction || fallback?.[sign.id]?.prediction || 'Stay grounded and trust your intuition today.',
+          color: source.luckyColor || source.color || fallback?.[sign.id]?.color || '#D98C1F',
+          luckyNumber: source.luckyNumber || source.number || fallback?.[sign.id]?.luckyNumber || '—',
+          mood: source.mood || fallback?.[sign.id]?.mood || 'Balanced',
+          compatibility: source.compatibility || fallback?.[sign.id]?.compatibility || '—',
+        }
+      : fallback?.[sign.id] || {
+          prediction: 'Stay grounded and trust your intuition today.',
+          color: '#D98C1F',
+          luckyNumber: '—',
+          mood: 'Balanced',
+          compatibility: '—',
+        };
+  });
+
+  return normalized;
+};
+
+const normalizeDailyWisdom = (data) => {
+  if (!data) return null;
+
+  return {
+    id: data.id || 'daily-wisdom',
+    quote: data.quote || data.text || '',
+    author: data.author || 'Aarambh',
+    category: data.category || 'Wisdom',
+    color: '#D98C1F',
+    bgGradient: 'from-[#FFF6E5] via-[#FFFAF0] to-[#FDECC8]',
+    borderColor: 'border-[#F4B400]/30',
+    tags: data.tags || ['Wisdom', 'Spirituality'],
+  };
+};
 
 export default function DailySpiritualGuide() {
+  const [panchangData, setPanchangData] = useState(mockPanchang);
+  const [horoscopeData, setHoroscopeData] = useState(mockHoroscope);
+  const [quoteData, setQuoteData] = useState(null);
+  const [mantra, setMantra] = useState('ॐ नमः शिवाय');
+  const [language, setLanguage] = useState('en');
+
+  useEffect(() => {
+    const loadGuideData = async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const [panchangResult, horoscopeResult, dailyContentResult] = await Promise.all([
+          getPanchangForHomepage(today, language),
+          getAllHoroscopes(today, language),
+          getDailyContent(),
+        ]);
+
+        if (panchangResult.success && panchangResult.panchang) {
+          setPanchangData(normalizePanchangData(panchangResult.panchang));
+        }
+
+        if (horoscopeResult.success && horoscopeResult.horoscopes) {
+          setHoroscopeData(normalizeHoroscopeData(horoscopeResult.horoscopes, mockHoroscope));
+        }
+
+        if (dailyContentResult.success) {
+          const wisdomData = dailyContentResult.data?.wisdom;
+          const mantraData = dailyContentResult.data?.mantra;
+          setQuoteData(normalizeDailyWisdom(wisdomData));
+          setMantra((mantraData?.text || mantraData?.mantra || 'ॐ नमः शिवाय').trim() || 'ॐ नमः शिवाय');
+        }
+      } catch (error) {
+        console.error('Error loading spiritual guide data:', error);
+      }
+    };
+
+    loadGuideData();
+  }, [language]);
+
   return (
     <section className="py-6 lg:py-8 relative overflow-hidden bg-[#FBF3E7] dark:bg-[#15100C]">
       {/* Layered background mesh */}
@@ -70,12 +166,12 @@ export default function DailySpiritualGuide() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8">
           {/* Left Column - Panchang + Wisdom */}
           <div className="flex flex-col gap-5 md:gap-6">
-            <PanchangSection data={mockPanchang} />
-            <DailyWisdom />
+            <PanchangSection data={panchangData} mantra={mantra} language={language} />
+            <DailyWisdom quoteData={quoteData} />
           </div>
-          
+
           {/* Right Column - Horoscope */}
-          <HoroscopeSection data={mockHoroscope} />
+          <HoroscopeSection data={horoscopeData} language={language} onLanguageChange={setLanguage} />
         </div>
       </div>
     </section>

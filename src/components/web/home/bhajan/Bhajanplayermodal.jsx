@@ -24,18 +24,43 @@ const getCategoryGradient = (category) => {
     sai:       'from-green-500 to-emerald-400',
     jagannath: 'from-yellow-500 to-amber-400',
   };
-  return map[category] || 'from-saffron to-gold';
+  return map[category?.toLowerCase()] || 'from-saffron to-gold';
 };
 
 const getCategoryEmoji = (category) => {
   const map = { krishna: '🪈', shiva: '🔱', hanuman: '🙏', durga: '⚔️', sai: '🕊️', jagannath: '🛕' };
-  return map[category] || '🕉️';
+  return map[category?.toLowerCase()] || '🕉️';
 };
 
 const formatNumber = (num) => {
   if (!num) return '0';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
   return String(num);
+};
+
+// Helper to extract YouTube embed URL
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return null;
+  
+  // If it's already an embed URL, return as is
+  if (url.includes('/embed/')) return url;
+  
+  // Extract video ID
+  let videoId = null;
+  if (url.includes('youtu.be/')) {
+    const match = url.match(/youtu\.be\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('watch?v=')) {
+    const match = url.match(/watch\?v=([^&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('/shorts/')) {
+    const match = url.match(/\/shorts\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('youtube.com/embed/')) {
+    return url;
+  }
+  
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
 };
 
 export default function BhajanPlayerModal({
@@ -63,7 +88,7 @@ export default function BhajanPlayerModal({
 
   if (!bhajan) return null;
 
-  const hasVideo = !!bhajan.videoUrl;
+  const embedUrl = getYouTubeEmbedUrl(bhajan.youtubeUrl);
 
   return (
     <AnimatePresence>
@@ -101,12 +126,11 @@ export default function BhajanPlayerModal({
               </button>
 
               {/* ── Video / Cover area ── */}
-              {hasVideo ? (
-                /* Full-width 16/9 video embed */
+              {embedUrl ? (
                 <div className="relative w-full aspect-video bg-black">
                   <iframe
-                    key={bhajan.videoUrl}
-                    src={`${bhajan.videoUrl}?autoplay=1&rel=0&modestbranding=1`}
+                    key={embedUrl}
+                    src={`${embedUrl}?autoplay=1&rel=0&modestbranding=1`}
                     title={bhajan.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -114,7 +138,6 @@ export default function BhajanPlayerModal({
                   />
                 </div>
               ) : (
-                /* Cover art placeholder with play overlay */
                 <div className={`relative w-full aspect-video bg-gradient-to-br ${getCategoryGradient(bhajan.category)} flex items-center justify-center`}>
                   <span className="text-8xl opacity-40 select-none">
                     {getCategoryEmoji(bhajan.category)}
@@ -136,7 +159,6 @@ export default function BhajanPlayerModal({
 
               {/* ── Info + controls ── */}
               <div className="px-5 py-4 md:px-6 md:py-5">
-                {/* Category + title */}
                 <div className="flex items-start gap-3 mb-3">
                   <div className="flex-1 min-w-0">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20 mb-2 capitalize">
@@ -155,21 +177,22 @@ export default function BhajanPlayerModal({
                 <div className="flex items-center gap-4 text-xs text-brown-400 dark:text-cream-50/40 mb-4">
                   <span className="flex items-center gap-1">
                     <FaHeadphones className="w-3 h-3" />
-                    {formatNumber(bhajan.plays)} plays
+                    {formatNumber(bhajan.views || 0)} plays
                   </span>
                   <span className="flex items-center gap-1">
                     <FaHeart className="w-3 h-3" />
-                    {formatNumber(bhajan.likes)} likes
+                    {formatNumber(bhajan.likes || 0)} likes
                   </span>
-                  <span className="flex items-center gap-1">
-                    <FaClock className="w-3 h-3" />
-                    {bhajan.duration}
-                  </span>
+                  {bhajan.duration && (
+                    <span className="flex items-center gap-1">
+                      <FaClock className="w-3 h-3" />
+                      {bhajan.duration}
+                    </span>
+                  )}
                 </div>
 
                 {/* Controls row */}
                 <div className="flex items-center justify-between pt-3 border-t border-gold/10">
-                  {/* Prev / Next */}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={onPrev}
@@ -187,7 +210,6 @@ export default function BhajanPlayerModal({
                     </button>
                   </div>
 
-                  {/* Like */}
                   <button
                     onClick={() => onLike?.(bhajan.id)}
                     className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold/20 hover:border-divine-red/30 hover:bg-divine-red/5 transition-all text-sm font-medium text-brown-700 dark:text-cream-50/80"

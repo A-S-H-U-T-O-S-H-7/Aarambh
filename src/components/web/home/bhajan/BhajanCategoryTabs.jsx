@@ -1,20 +1,24 @@
-// components/home/BhajanCategoryTabs.jsx
+// components/web/home/bhajan/BhajanCategoryTabs.jsx
 'use client';
 
 import { motion } from 'framer-motion';
 
 export default function BhajanCategoryTabs({ categories, activeCategory, onCategoryChange }) {
+  // If no categories, show default
+  const displayCategories = categories.length > 0 ? categories : ['All'];
+  
   return (
     <div className="flex flex-wrap gap-2 justify-center">
-      {categories.map((category) => {
-        const isActive = activeCategory === category.id;
+      {displayCategories.map((category) => {
+        const isActive = activeCategory === category || (activeCategory === 'all' && category === 'All');
+        const categoryId = category.toLowerCase();
         
         return (
           <motion.button
-            key={category.id}
+            key={category}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => onCategoryChange(category.id)}
+            onClick={() => onCategoryChange(categoryId)}
             className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
               isActive
                 ? 'text-white bg-gradient-to-r from-saffron to-gold shadow-lg'
@@ -22,8 +26,8 @@ export default function BhajanCategoryTabs({ categories, activeCategory, onCateg
             }`}
           >
             <span className="flex items-center space-x-2">
-              <span>{category.icon}</span>
-              <span>{category.name}</span>
+              <span>{category === 'All' ? '🕉️' : getCategoryEmoji(category)}</span>
+              <span>{category}</span>
             </span>
             
             {/* Active Indicator */}
@@ -39,3 +43,16 @@ export default function BhajanCategoryTabs({ categories, activeCategory, onCateg
     </div>
   );
 }
+
+// Helper to get category emoji
+const getCategoryEmoji = (category) => {
+  const emojis = {
+    krishna: '🪈',
+    shiva: '🔱',
+    hanuman: '🙏',
+    durga: '⚔️',
+    sai: '🕊️',
+    jagannath: '🛕',
+  };
+  return emojis[category?.toLowerCase()] || '🕉️';
+};

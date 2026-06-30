@@ -21,7 +21,7 @@ const getCategoryGradient = (category) => {
     sai:     'from-green-500/30 to-emerald-400/20',
     jagannath: 'from-yellow-500/30 to-amber-400/20',
   };
-  return colors[category] || 'from-saffron/20 to-gold/20';
+  return colors[category?.toLowerCase()] || 'from-saffron/20 to-gold/20';
 };
 
 const getCategoryAccent = (category) => {
@@ -33,7 +33,7 @@ const getCategoryAccent = (category) => {
     sai:       'bg-green-500',
     jagannath: 'bg-yellow-500',
   };
-  return colors[category] || 'bg-gold';
+  return colors[category?.toLowerCase()] || 'bg-gold';
 };
 
 const getCategoryEmoji = (category) => {
@@ -41,7 +41,29 @@ const getCategoryEmoji = (category) => {
     krishna: '🪈', shiva: '🔱', hanuman: '🙏',
     durga: '⚔️', sai: '🕊️', jagannath: '🛕',
   };
-  return emojis[category] || '🕉️';
+  return emojis[category?.toLowerCase()] || '🕉️';
+};
+
+// Helper to get YouTube thumbnail
+const getYouTubeThumbnail = (url) => {
+  if (!url) return null;
+  
+  let videoId = null;
+  if (url.includes('youtu.be/')) {
+    const match = url.match(/youtu\.be\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('watch?v=')) {
+    const match = url.match(/watch\?v=([^&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('/shorts/')) {
+    const match = url.match(/\/shorts\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('/embed/')) {
+    const match = url.match(/\/embed\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  }
+  
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
 };
 
 const formatNumber = (num) => {
@@ -52,6 +74,7 @@ const formatNumber = (num) => {
 
 export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked, onClick }) {
   const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const handleCardClick = () => {
     if (onClick) onClick(bhajan);
@@ -66,6 +89,12 @@ export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked,
     e.stopPropagation();
     onLike?.(bhajan.id);
   };
+
+  const thumbnailUrl = getYouTubeThumbnail(bhajan.youtubeUrl);
+
+  // Badge logic: if both featured and trending, show only trending
+  const showFeatured = bhajan.isFeatured && !bhajan.isTrending;
+  const showTrending = bhajan.isTrending;
 
   return (
     <motion.div
@@ -82,26 +111,45 @@ export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked,
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          className={`absolute top-0 left-0 right-0 h-0.5 ${getCategoryAccent(bhajan.category)}`}
+          className={`absolute top-0 left-0 right-0 h-0.5 ${getCategoryAccent(bhajan.category)} z-10`}
         />
       )}
 
       {/* Cover Art */}
       <div className={`relative aspect-square w-full bg-gradient-to-br ${getCategoryGradient(bhajan.category)} overflow-hidden`}>
-        {/* Emoji centre */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`text-5xl transition-all duration-300 ${hovered ? 'opacity-30 scale-110' : 'opacity-50'}`}>
-            {getCategoryEmoji(bhajan.category)}
-          </span>
-        </div>
+        {/* Thumbnail Image */}
+        {thumbnailUrl && !imgError ? (
+          <img
+            src={thumbnailUrl}
+            alt={bhajan.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className={`text-5xl transition-all duration-300 ${hovered ? 'opacity-30 scale-110' : 'opacity-50'}`}>
+              {getCategoryEmoji(bhajan.category)}
+            </span>
+          </div>
+        )}
 
-        {/* Hover overlay — play CTA */}
-        <div className={`absolute inset-0 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 transition-opacity duration-300 ${hovered || isPlaying ? 'opacity-100' : 'opacity-0'}`}>
+        {/* Dark overlay - darker on hover */}
+        <div className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${hovered || isPlaying ? 'opacity-60' : 'opacity-0'}`} />
+
+        {/* ─── SINGLE PLAY BUTTON ─── */}
+        <div className="absolute inset-0 flex items-center justify-center">
           <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.92 }}
             onClick={handlePlayClick}
-            className="w-12 h-12 rounded-full bg-gradient-to-br from-saffron to-gold text-white flex items-center justify-center shadow-lg"
+            className={`
+              w-11 h-11 rounded-full flex items-center justify-center shadow-lg
+              transition-all duration-300
+              ${hovered || isPlaying 
+                ? 'bg-gradient-to-br from-saffron to-gold text-white scale-110 shadow-xl shadow-saffron/30' 
+                : 'bg-white/25 backdrop-blur-sm text-white border border-white/40'
+              }
+            `}
           >
             {isPlaying ? (
               <FaPause className="w-4 h-4" />
@@ -109,21 +157,41 @@ export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked,
               <FaPlay className="w-4 h-4 ml-0.5" />
             )}
           </motion.button>
-          <span className="text-[10px] text-white/80 font-medium">Open player</span>
         </div>
 
-        {/* Featured badge */}
-        {bhajan.featured && (
+        {/* ─── "Play" text - subtle hint ─── */}
+        <div className={`
+          absolute bottom-14 left-1/2 -translate-x-1/2 
+          text-[9px] font-medium tracking-wide uppercase
+          transition-all duration-300
+          ${hovered || isPlaying 
+            ? 'text-white/80 opacity-100' 
+            : 'text-white/40 opacity-0'
+          }
+        `}>
+          {isPlaying ? 'Now Playing' : 'Play'}
+        </div>
+
+        {/* Badges */}
+        {showFeatured && (
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-gold text-brown-900 text-[9px] font-bold rounded-full shadow">
             ⭐ Featured
           </div>
         )}
 
+        {showTrending && (
+          <div className={`absolute top-2 ${showFeatured ? 'left-20' : 'left-2'} px-2 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full shadow`}>
+            🔥 Trending
+          </div>
+        )}
+
         {/* Duration pill */}
-        <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[10px] rounded-full flex items-center gap-1">
-          <FaClock className="w-2.5 h-2.5" />
-          {bhajan.duration}
-        </div>
+        {bhajan.duration && (
+          <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[10px] rounded-full flex items-center gap-1">
+            <FaClock className="w-2.5 h-2.5" />
+            {bhajan.duration}
+          </div>
+        )}
 
         {/* Now playing wave bars */}
         {isPlaying && (
@@ -168,11 +236,11 @@ export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked,
         <div className="flex items-center gap-3 text-[10px] text-brown-400 dark:text-cream-50/35">
           <span className="flex items-center gap-1">
             <FaHeadphones className="w-2.5 h-2.5" />
-            {formatNumber(bhajan.plays)}
+            {formatNumber(bhajan.views || 0)}
           </span>
           <span className="flex items-center gap-1">
             <FaHeart className="w-2.5 h-2.5" />
-            {formatNumber(bhajan.likes)}
+            {formatNumber(bhajan.likes || 0)}
           </span>
         </div>
       </div>

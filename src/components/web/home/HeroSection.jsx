@@ -1,3 +1,4 @@
+// components/home/HeroSection.jsx
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -5,6 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ChevronRight, Play, Sparkles, Volume2, VolumeX, Pause, Music } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 
 // Fixed positions — reduced for mobile
 const SANSKRIT_SYMBOLS = [
@@ -18,7 +21,6 @@ const SANSKRIT_SYMBOLS = [
   { text: 'हरि',     top: '85%', left: '35%',  size: '1rem',   dur: 19, delay: 2   },
 ];
 
-// Mobile version - fewer symbols, smaller, more subtle
 const MOBILE_SANSKRIT_SYMBOLS = [
   { text: 'ॐ',   top: '12%', left: '75%', size: '1.2rem', dur: 14, delay: 0   },
   { text: 'श्री', top: '25%', left: '88%', size: '0.9rem', dur: 18, delay: 1.5 },
@@ -27,18 +29,87 @@ const MOBILE_SANSKRIT_SYMBOLS = [
   { text: 'शिव',  top: '40%', left: '92%', size: '0.8rem', dur: 17, delay: 4   },
 ];
 
+// ============ DEFAULT VALUES (Fallback) ============
+const DEFAULT_VALUES = {
+  headingLine1: 'Begin Every Day',
+  headingLine2: 'with Divine Wisdom',
+  tagline: 'आरम्भः सर्वकार्येषु मङ्गलाचरणम्',
+  ctaText: 'Explore Now',
+  ctaLink: '#explore',
+  desktopImage: '/Herocopy1.png',
+  mobileImage: '/MobHerobanner3.png',
+  mantra: 'ॐ नमः शिवाय',
+  mantraTranslation: 'I bow to Lord Shiva',
+  songUrl: '/music.mpeg',
+};
+
+const resolveHeroContent = (heroData = {}, mantraData = {}, songData = {}) => {
+  const headingLine1 =
+    heroData.headingLine1?.trim() ||
+    heroData.titleLine1?.trim() ||
+    heroData.primaryHeading?.trim() ||
+    heroData.heading?.trim() ||
+    DEFAULT_VALUES.headingLine1;
+
+  const headingLine2 =
+    heroData.headingLine2?.trim() ||
+    heroData.titleLine2?.trim() ||
+    heroData.accentHeading?.trim() ||
+    DEFAULT_VALUES.headingLine2;
+
+  return {
+    headingLine1,
+    headingLine2,
+    tagline: heroData.tagline?.trim() || DEFAULT_VALUES.tagline,
+    ctaText: heroData.ctaText?.trim() || DEFAULT_VALUES.ctaText,
+    ctaLink: heroData.ctaLink?.trim() || DEFAULT_VALUES.ctaLink,
+    desktopImage: heroData.desktopImage?.trim() || DEFAULT_VALUES.desktopImage,
+    mobileImage: heroData.mobileImage?.trim() || DEFAULT_VALUES.mobileImage,
+    mantra: mantraData.text?.trim() || DEFAULT_VALUES.mantra,
+    mantraTranslation: mantraData.translation?.trim() || DEFAULT_VALUES.mantraTranslation,
+    songUrl: songData.url?.trim() || songData.songUrl?.trim() || DEFAULT_VALUES.songUrl,
+  };
+};
+
 export default function HeroSection() {
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
   const mouseRef  = useRef({ x: -9999, y: -9999 });
   const animIdRef = useRef(null);
   
+  // ============ STATE ============
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [content, setContent] = useState(DEFAULT_VALUES);
+  const [loading, setLoading] = useState(true);
 
-  // Check mobile
+  // ============ FETCH DYNAMIC CONTENT ============
+  useEffect(() => {
+    const fetchHeroContent = async () => {
+      try {
+        const heroDoc = await getDoc(doc(db, 'dailyContent', 'hero'));
+        const mantraDoc = await getDoc(doc(db, 'dailyContent', 'mantra'));
+        const songDoc = await getDoc(doc(db, 'dailyContent', 'song'));
+
+        const heroData = heroDoc.exists() ? heroDoc.data() : {};
+        const mantraData = mantraDoc.exists() ? mantraDoc.data() : {};
+        const songData = songDoc.exists() ? songDoc.data() : {};
+
+        setContent(resolveHeroContent(heroData, mantraData, songData));
+      } catch (error) {
+        console.error('Error fetching hero content:', error);
+        // Keep default values
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHeroContent();
+  }, []);
+
+  // ============ MOBILE CHECK ============
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -48,15 +119,17 @@ export default function HeroSection() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Audio controls
+  // ============ AUDIO CONTROLS ============
   const togglePlay = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play().catch(() => {});
-      }
-      setIsPlaying(!isPlaying);
+    if (!audioRef.current || !content.songUrl) return;
+
+    if (audioRef.current.paused) {
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false));
+    } else {
+      audioRef.current.pause();
+      setIsPlaying(false);
     }
   };
 
@@ -70,7 +143,7 @@ export default function HeroSection() {
   // Auto-play on load (with user interaction requirement)
   useEffect(() => {
     const playAudio = () => {
-      if (audioRef.current && !isPlaying) {
+      if (audioRef.current && !isPlaying && content.songUrl) {
         audioRef.current.play().catch(() => {});
         setIsPlaying(true);
       }
@@ -78,9 +151,9 @@ export default function HeroSection() {
     };
     document.addEventListener('click', playAudio);
     return () => document.removeEventListener('click', playAudio);
-  }, []);
+  }, [content.songUrl]);
 
-  // Particle canvas effect - optimized for mobile
+  // ============ PARTICLE CANVAS EFFECT ============
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -102,7 +175,6 @@ export default function HeroSection() {
     section.addEventListener('mousemove', onMove);
     section.addEventListener('mouseleave', onLeave);
 
-    // Mobile optimized values
     const isMobileView = window.innerWidth < 768;
     const PARTICLE_COUNT = isMobileView ? 60 : 100;
     const INFLUENCE_RADIUS = isMobileView ? 80 : 130;
@@ -188,8 +260,24 @@ export default function HeroSection() {
     };
   }, []);
 
-  // Get symbols based on device
+  // ============ RENDER ============
   const symbols = isMobile ? MOBILE_SANSKRIT_SYMBOLS : SANSKRIT_SYMBOLS;
+  
+  // Use dynamic values or fallback defaults
+  const {
+    headingLine1,
+    headingLine2,
+    tagline,
+    ctaText,
+    ctaLink,
+    desktopImage,
+    mobileImage,
+    mantra,
+    mantraTranslation,
+    songUrl,
+  } = content;
+
+  const bgImage = isMobile ? mobileImage : desktopImage;
 
   return (
     <section
@@ -199,23 +287,27 @@ export default function HeroSection() {
       {/* ── Hidden Audio Player ── */}
       <audio
         ref={audioRef}
-        src="/music.mpeg"
+        src={songUrl}
         loop
         preload="auto"
         onLoadedData={() => setIsLoaded(true)}
+        onError={() => console.log('Audio load error, using fallback')}
       />
 
       {/* ── Background image ── */}
       <div className="absolute inset-0 z-0">
         <Image
-          src={isMobile ? "/MobHerobanner3.png" : "/Herocopy1.png"}
+          src={bgImage}
           alt="Aarambh TV – Divine Spiritual Background"
           fill
           priority
           className="object-cover object-top"
           quality={100}
+          onError={(e) => {
+            // Fallback to default image if Firebase image fails
+            e.target.src = isMobile ? '/MobHerobanner3.png' : '/Herocopy1.png';
+          }}
         />
-        {/* Overlay for better text readability - lighter on mobile */}
         <div className={`absolute inset-0 ${isMobile ? 'bg-gradient-to-r from-black/50 via-black/30 to-transparent' : 'bg-gradient-to-r from-black/40 via-black/20 to-transparent'}`} />
       </div>
 
@@ -266,13 +358,11 @@ export default function HeroSection() {
 
       {/* ── Audio Player Controls ── */}
       <div className={`absolute ${isMobile ? 'top-3 right-3' : 'top-4 right-4'} z-20 flex items-center gap-2`}>
-        {/* Music Status Badge - hidden on mobile */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/30 backdrop-blur-sm border border-white/10">
           <Music className="w-3 h-3 text-gold animate-pulse" />
           <span className="text-[10px] text-white/70 font-medium">Divine Music</span>
         </div>
 
-        {/* Play/Pause Button - smaller on mobile */}
         <button
           onClick={togglePlay}
           className={`${isMobile ? 'p-2' : 'p-2.5'} rounded-full bg-black/40 backdrop-blur-sm border border-white/20 hover:bg-black/60 transition-all hover:scale-105 active:scale-95`}
@@ -285,7 +375,6 @@ export default function HeroSection() {
           )}
         </button>
 
-        {/* Mute/Unmute Button - smaller on mobile */}
         <button
           onClick={toggleMute}
           className={`${isMobile ? 'p-2' : 'p-2.5'} rounded-full bg-black/40 backdrop-blur-sm border border-white/20 hover:bg-black/60 transition-all hover:scale-105 active:scale-95`}
@@ -300,14 +389,14 @@ export default function HeroSection() {
       </div>
 
       {/* ── Content ── */}
-      <div className="relative  z-10 w-full max-w-8xl mx-auto px-4 sm:px-8 lg:px-12">
+      <div className="relative z-10 w-full max-w-8xl mx-auto px-4 sm:px-8 lg:px-12">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
           className={isMobile ? 'max-w-full' : 'max-w-xl'}
         >
-          {/* Headline - smaller on mobile */}
+          {/* Headline - split into white and gold lines */}
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -322,22 +411,26 @@ export default function HeroSection() {
               className="text-white"
               style={{ textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}
             >
-              Begin Every Day
+              {headingLine1}
             </span>
-            <br />
-            <span
-              style={{
-                background: 'linear-gradient(95deg, #FFD700 0%, #FF8C00 55%, #FFD700 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              with Divine Wisdom
-            </span>
+            {headingLine2 ? (
+              <>
+                <br />
+                <span
+                  style={{
+                    background: 'linear-gradient(95deg, #FFD700 0%, #FF8C00 55%, #FFD700 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {headingLine2}
+                </span>
+              </>
+            ) : null}
           </motion.h1>
 
-          {/* Sanskrit verse - smaller on mobile */}
+          {/* Tagline / Sanskrit verse */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -354,11 +447,11 @@ export default function HeroSection() {
                 lineHeight: 1.5,
               }}
             >
-              "आरम्भः सर्वकार्येषु मङ्गलाचरणम्"
+              {tagline}
             </p>
           </motion.div>
 
-          {/* Feature chips - fewer on mobile */}
+          {/* Feature chips */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -380,7 +473,7 @@ export default function HeroSection() {
             ))}
           </motion.div>
 
-          {/* CTAs - smaller on mobile */}
+          {/* CTAs - using dynamic values */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -388,7 +481,7 @@ export default function HeroSection() {
             className="flex flex-wrap gap-3 mb-6"
           >
             <Link
-              href="#explore"
+              href={ctaLink}
               className="group inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold transition-all duration-300 hover:scale-105 active:scale-95"
               style={{
                 background: 'linear-gradient(135deg, #D94F0A 0%, #F4B400 100%)',
@@ -400,7 +493,7 @@ export default function HeroSection() {
                 padding: isMobile ? '8px 16px' : '8px 16px',
               }}
             >
-              Explore Now
+              {ctaText}
               <ChevronRight className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} group-hover:translate-x-1 transition-transform`} />
             </Link>
 
@@ -425,7 +518,7 @@ export default function HeroSection() {
             </Link>
           </motion.div>
 
-          {/* Mantra of the day - smaller on mobile */}
+          {/* Mantra of the day - using dynamic values */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -437,7 +530,7 @@ export default function HeroSection() {
               border: '1px solid rgba(255,210,60,0.22)',
             }}
           >
-            {/* Glow effect behind mantra */}
+            {/* Glow effect */}
             <motion.div
               className="absolute inset-0 rounded-xl"
               style={{
@@ -448,7 +541,7 @@ export default function HeroSection() {
             />
             
             <div className="relative z-10">
-              <p className={`${isMobile ? 'text-[7px]' : 'text-[9px]'} text-white/45 uppercase tracking-[0.18em] mb-0.5 flex items-center gap-1`}>
+              <p className={`${isMobile ? 'text-[7px]' : 'text-[9px]'} text-white/45 uppercase tracking-[0.18em] mb-2 flex items-center gap-1`}>
                 <Sparkles className={`${isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'} text-gold`} />
                 Mantra of the Day
               </p>
@@ -463,9 +556,11 @@ export default function HeroSection() {
                 animate={{ opacity: [0.72, 1, 0.72] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               >
-                ॐ नमः शिवाय
+                {mantra}
               </motion.p>
-              <p className={`${isMobile ? 'text-[7px]' : 'text-[9px]'} text-white/40 mt-0.5`}>"I bow to Lord Shiva"</p>
+              <p className={`${isMobile ? 'text-[7px]' : 'text-[9px]'} text-white/40 mt-0.5`}>
+                "{mantraTranslation}"
+              </p>
             </div>
           </motion.div>
         </motion.div>
@@ -481,7 +576,7 @@ export default function HeroSection() {
         }}
       />
 
-      {/* ── Visualizer Bars - hidden on mobile ── */}
+      {/* ── Visualizer Bars ── */}
       {!isMobile && isPlaying && !isMuted && (
         <div className="absolute bottom-20 right-8 z-10 hidden sm:flex items-end gap-0.5 h-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (

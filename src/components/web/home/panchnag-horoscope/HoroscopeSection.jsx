@@ -35,11 +35,15 @@ const TONES = {
   },
 };
 
-export default function HoroscopeSection({ data, language = 'en' }) {
+export default function HoroscopeSection({ data, language = 'en', onLanguageChange }) {
   const [selectedSign, setSelectedSign] = useState('aries');
 
-  const selectedData = data[selectedSign];
+  const selectedData = data?.[selectedSign] || data?.aries || {};
   const signInfo = zodiacSigns.find((s) => s.id === selectedSign);
+  const selectedColor = selectedData?.color || selectedData?.luckyColor || '#D98C1F';
+  const selectedLuckyNumber = selectedData?.luckyNumber || selectedData?.number || '—';
+  const selectedMood = selectedData?.mood || 'Balanced';
+  const selectedCompatibility = selectedData?.compatibility || '—';
 
   const getZodiacEmoji = (id) => {
     const emojis = {
@@ -82,7 +86,11 @@ export default function HoroscopeSection({ data, language = 'en' }) {
               </div>
             </div>
 
-            <select className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-[#FBF3E7] dark:bg-[#1A130E] border border-[#F4B400]/20 rounded-lg focus:outline-none focus:border-[#E8742C] text-[#3D2B1A] dark:text-[#F0E4D3] shrink-0">
+            <select
+              value={language}
+              onChange={(e) => onLanguageChange?.(e.target.value)}
+              className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-[#FBF3E7] dark:bg-[#1A130E] border border-[#F4B400]/20 rounded-lg focus:outline-none focus:border-[#E8742C] text-[#3D2B1A] dark:text-[#F0E4D3] shrink-0"
+            >
               <option value="en">English</option>
               <option value="hi">हिंदी</option>
             </select>
@@ -166,10 +174,10 @@ export default function HoroscopeSection({ data, language = 'en' }) {
                   <div className="flex items-center gap-1 sm:gap-2 mt-1 min-w-0">
                     <div
                       className="w-3 h-3 sm:w-4 sm:h-4 rounded-full shadow-inner shrink-0"
-                      style={{ backgroundColor: selectedData?.color }}
+                      style={{ backgroundColor: selectedColor }}
                     />
                     <span className="text-[10px] sm:text-xs font-medium text-[#3D2B1A] dark:text-[#F0E4D3] truncate">
-                      {selectedData?.color?.toUpperCase()}
+                      {String(selectedColor).toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -179,7 +187,7 @@ export default function HoroscopeSection({ data, language = 'en' }) {
                     Lucky No.
                   </p>
                   <p className="text-sm sm:text-base font-bold text-[#D98C1F] dark:text-[#F4B400] mt-1">
-                    {selectedData?.luckyNumber}
+                    {selectedLuckyNumber}
                   </p>
                 </div>
 
@@ -190,7 +198,7 @@ export default function HoroscopeSection({ data, language = 'en' }) {
                   <div className="flex items-center gap-1 mt-1 min-w-0">
                     <FaSmile className="w-3 h-3 text-[#D98C1F] dark:text-[#F4B400] shrink-0" />
                     <p className="text-[10px] sm:text-xs font-medium text-[#3D2B1A] dark:text-[#F0E4D3] truncate">
-                      {selectedData?.mood}
+                      {selectedMood}
                     </p>
                   </div>
                 </div>
@@ -205,7 +213,7 @@ export default function HoroscopeSection({ data, language = 'en' }) {
                   <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
                     <FaUserFriends className="w-3 h-3 text-[#E8742C] dark:text-[#E8825A] shrink-0" />
                     <p className="text-[11px] sm:text-xs font-medium text-[#3D2B1A] dark:text-[#F0E4D3] break-words">
-                      {selectedData?.compatibility}
+                      {selectedCompatibility}
                     </p>
                   </div>
                 </div>

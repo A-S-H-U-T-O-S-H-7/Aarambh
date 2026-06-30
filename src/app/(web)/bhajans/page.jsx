@@ -1,7 +1,7 @@
 // app/(web)/bhajans/page.jsx
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,19 +19,20 @@ import {
   FaArrowLeft,
 } from 'react-icons/fa';
 import { GiLotus } from 'react-icons/gi';
+import { toast } from 'react-hot-toast';
 import BhajanCard from '@/components/web/home/bhajan/BhajanCard';
 import BhajanPlayerModal from '@/components/web/home/bhajan/Bhajanplayermodal';
-import {
-  bhajanCategories,
-  getCategoryBhajans,
-  bhajans,
-} from '@/lib/mockBhajanData';
+import { 
+  getBhajans, 
+  incrementMediaView,
+  toggleMediaLike 
+} from '@/lib/services/mediaService';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const getCategoryEmoji = (category) => {
   const emojis = { krishna: '🪈', shiva: '🔱', hanuman: '🙏', durga: '⚔️', sai: '🕊️', jagannath: '🛕' };
-  return emojis[category] || '🕉️';
+  return emojis[category?.toLowerCase()] || '🕉️';
 };
 
 const getCategoryGradient = (category) => {
@@ -43,7 +44,7 @@ const getCategoryGradient = (category) => {
     sai:       'from-green-600 to-emerald-500',
     jagannath: 'from-yellow-500 to-amber-400',
   };
-  return colors[category] || 'from-saffron to-gold';
+  return colors[category?.toLowerCase()] || 'from-saffron to-gold';
 };
 
 const formatNumber = (num) => {
@@ -52,11 +53,34 @@ const formatNumber = (num) => {
   return num.toString();
 };
 
+// Helper to get YouTube thumbnail
+const getYouTubeThumbnail = (url) => {
+  if (!url) return null;
+  
+  let videoId = null;
+  if (url.includes('youtu.be/')) {
+    const match = url.match(/youtu\.be\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('watch?v=')) {
+    const match = url.match(/watch\?v=([^&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('/shorts/')) {
+    const match = url.match(/\/shorts\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('/embed/')) {
+    const match = url.match(/\/embed\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  }
+  
+  return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
+};
+
 // ─── FeaturedHero ─────────────────────────────────────────────────────────────
 
 function FeaturedHero({ bhajan, onOpen }) {
   if (!bhajan) return null;
   const gradient = getCategoryGradient(bhajan.category);
+  const thumbnail = getYouTubeThumbnail(bhajan.youtubeUrl);
 
   return (
     <motion.div
@@ -68,19 +92,42 @@ function FeaturedHero({ bhajan, onOpen }) {
     >
       {/* BG gradient */}
       <div className={`absolute inset-0 bg-gradient-to-r ${gradient} opacity-90`} />
-      {/* Soft noise texture feel via layered opacity */}
+      
+      {/* Thumbnail as background */}
+      {thumbnail && (
+        <div className="absolute inset-0 opacity-30">
+          <img 
+            src={thumbnail} 
+            alt={bhajan.title} 
+            className="w-full h-full object-cover"
+            onError={(e) => e.target.style.display = 'none'}
+          />
+        </div>
+      )}
+      
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_60%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(0,0,0,0.3),transparent_70%)]" />
 
       <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-10 p-6 md:p-8 lg:p-10">
-        {/* Big emoji disc */}
-        <div className="flex-shrink-0 w-28 h-28 md:w-36 md:h-36 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-2xl border border-white/30 group-hover:scale-105 transition-transform duration-300">
-          <span className="text-6xl md:text-7xl select-none">
-            {getCategoryEmoji(bhajan.category)}
-          </span>
+        {/* Thumbnail circle */}
+        <div className="flex-shrink-0 w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-2xl border border-white/30 group-hover:scale-105 transition-transform duration-300">
+          {thumbnail ? (
+            <img 
+              src={thumbnail} 
+              alt={bhajan.title} 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentElement.innerHTML = `<span class="text-6xl md:text-7xl select-none">${getCategoryEmoji(bhajan.category)}</span>`;
+              }}
+            />
+          ) : (
+            <span className="text-6xl md:text-7xl select-none">
+              {getCategoryEmoji(bhajan.category)}
+            </span>
+          )}
         </div>
 
-        {/* Text */}
         <div className="flex-1 text-center md:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-semibold text-white border border-white/20 mb-3">
             <FaFire className="w-3 h-3" />
@@ -94,11 +141,11 @@ function FeaturedHero({ bhajan, onOpen }) {
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-white/60 mb-6">
             <span className="flex items-center gap-1.5">
               <FaHeadphones className="w-3.5 h-3.5" />
-              {formatNumber(bhajan.plays)} plays
+              {formatNumber(bhajan.views || 0)} plays
             </span>
             <span className="flex items-center gap-1.5">
               <FaHeart className="w-3.5 h-3.5" />
-              {formatNumber(bhajan.likes)} likes
+              {formatNumber(bhajan.likes || 0)} likes
             </span>
             <span className="capitalize px-2 py-0.5 bg-white/15 rounded-full">
               {bhajan.category}
@@ -165,7 +212,6 @@ function StickyNowPlaying({ bhajan, isPlaying, onOpen, onToggle, onNext, onPrev,
       className="fixed bottom-0 left-0 right-0 z-40 p-3 md:p-4"
     >
       <div className="max-w-3xl mx-auto flex items-center gap-3 md:gap-4 px-4 py-3 bg-brown-900/96 dark:bg-brown-950/96 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/25">
-        {/* Emoji */}
         <div
           className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-saffron/40 to-gold/30 flex items-center justify-center cursor-pointer"
           onClick={() => onOpen(bhajan)}
@@ -173,13 +219,11 @@ function StickyNowPlaying({ bhajan, isPlaying, onOpen, onToggle, onNext, onPrev,
           <span className="text-xl">{getCategoryEmoji(bhajan.category)}</span>
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onOpen(bhajan)}>
           <p className="text-xs font-semibold text-cream-50 truncate">{bhajan.title}</p>
           <p className="text-[10px] text-cream-50/50 truncate">{bhajan.artist}</p>
         </div>
 
-        {/* Controls */}
         <div className="flex items-center gap-1.5">
           <button onClick={onPrev} className="p-2 rounded-full hover:bg-white/10 text-cream-50/60 hover:text-cream-50 transition-colors">
             <FaStepBackward className="w-3 h-3" />
@@ -206,46 +250,86 @@ function StickyNowPlaying({ bhajan, isPlaying, onOpen, onToggle, onNext, onPrev,
 
 export default function BhajansPage() {
   const router = useRouter();
+  const [allBhajans, setAllBhajans] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [playingId, setPlayingId] = useState(null);
   const [likedBhajans, setLikedBhajans] = useState([]);
   const [modalBhajan, setModalBhajan] = useState(null);
 
+  // Fetch real data
+  useEffect(() => {
+    const fetchBhajans = async () => {
+      setLoading(true);
+      try {
+        const result = await getBhajans(100);
+        if (result.success) {
+          setAllBhajans(result.bhajans);
+        } else {
+          toast.error('Failed to load bhajans');
+        }
+      } catch (error) {
+        console.error('Error fetching bhajans:', error);
+        toast.error('Failed to load bhajans');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBhajans();
+  }, []);
+
   // Category counts
   const categoryCounts = useMemo(() => {
-    const counts = { all: bhajans.length };
-    bhajans.forEach((b) => {
-      counts[b.category] = (counts[b.category] || 0) + 1;
+    const counts = { all: allBhajans.length };
+    allBhajans.forEach((b) => {
+      const cat = b.category?.toLowerCase() || 'uncategorized';
+      counts[cat] = (counts[cat] || 0) + 1;
     });
     return counts;
-  }, []);
+  }, [allBhajans]);
 
   // Filtered list
   const filteredBhajans = useMemo(() => {
-    let results = getCategoryBhajans(activeCategory);
+    let results = allBhajans;
+    if (activeCategory !== 'all') {
+      results = results.filter((b) => b.category?.toLowerCase() === activeCategory);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       results = results.filter(
         (b) =>
-          b.title.toLowerCase().includes(q) ||
-          b.artist.toLowerCase().includes(q) ||
-          b.category.toLowerCase().includes(q)
+          b.title?.toLowerCase().includes(q) ||
+          b.artist?.toLowerCase().includes(q) ||
+          b.category?.toLowerCase().includes(q)
       );
     }
     return results;
-  }, [activeCategory, searchQuery]);
+  }, [allBhajans, activeCategory, searchQuery]);
 
-  // Featured = first featured bhajan
+  // Featured = first featured bhajan or first in list
   const featuredBhajan = useMemo(
-    () => bhajans.find((b) => b.featured) || bhajans[0],
-    []
+    () => allBhajans.find((b) => b.isFeatured) || allBhajans[0],
+    [allBhajans]
   );
 
   // Modal handlers
-  const handleOpenModal = useCallback((bhajan) => {
+  const handleOpenModal = useCallback(async (bhajan) => {
     setModalBhajan(bhajan);
     setPlayingId(bhajan.id);
+    
+    try {
+      await incrementMediaView(bhajan.id);
+      setAllBhajans(prev => 
+        prev.map(b => 
+          b.id === bhajan.id 
+            ? { ...b, views: (b.views || 0) + 1 }
+            : b
+        )
+      );
+    } catch (error) {
+      console.error('Error incrementing view:', error);
+    }
   }, []);
 
   const handleCloseModal = useCallback(() => {
@@ -253,23 +337,47 @@ export default function BhajansPage() {
   }, []);
 
   const handleNext = useCallback(() => {
-    if (!playingId) return;
-    const idx = filteredBhajans.findIndex((b) => b.id === playingId);
+    if (!modalBhajan) return;
+    const idx = filteredBhajans.findIndex((b) => b.id === modalBhajan.id);
     const next = filteredBhajans[(idx + 1) % filteredBhajans.length];
     if (next) { setModalBhajan(next); setPlayingId(next.id); }
-  }, [playingId, filteredBhajans]);
+  }, [modalBhajan, filteredBhajans]);
 
   const handlePrev = useCallback(() => {
-    if (!playingId) return;
-    const idx = filteredBhajans.findIndex((b) => b.id === playingId);
+    if (!modalBhajan) return;
+    const idx = filteredBhajans.findIndex((b) => b.id === modalBhajan.id);
     const prev = filteredBhajans[(idx - 1 + filteredBhajans.length) % filteredBhajans.length];
     if (prev) { setModalBhajan(prev); setPlayingId(prev.id); }
-  }, [playingId, filteredBhajans]);
+  }, [modalBhajan, filteredBhajans]);
 
-  const handleLike = useCallback((id) => {
+  const handleLike = useCallback(async (id) => {
     setLikedBhajans((prev) =>
       prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
     );
+    
+    setAllBhajans(prev => 
+      prev.map(b => 
+        b.id === id 
+          ? { ...b, likes: (b.likes || 0) + 1 }
+          : b
+      )
+    );
+
+    try {
+      await toggleMediaLike(id);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      setLikedBhajans((prev) =>
+        prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
+      );
+      setAllBhajans(prev => 
+        prev.map(b => 
+          b.id === id 
+            ? { ...b, likes: Math.max(0, (b.likes || 0) - 1) }
+            : b
+        )
+      );
+    }
   }, []);
 
   const handleTogglePlay = useCallback(() => {
@@ -278,22 +386,52 @@ export default function BhajansPage() {
   }, [modalBhajan]);
 
   const isLiked = (id) => likedBhajans.includes(id);
-  const nowPlaying = playingId ? bhajans.find((b) => b.id === playingId) : null;
+  const nowPlaying = playingId ? allBhajans.find((b) => b.id === playingId) : null;
 
-  // Deduplicate: mock data may already include 'all' — ensure it appears only once
-  const allCategories = useMemo(() => {
-    const seen = new Set();
-    return [{ id: 'all', name: 'All', icon: '🕉️' }, ...bhajanCategories].filter((c) => {
-      if (seen.has(c.id)) return false;
-      seen.add(c.id);
-      return true;
+  // Unique categories from real data
+  const uniqueCategories = useMemo(() => {
+    const cats = new Set();
+    allBhajans.forEach(b => {
+      if (b.category) cats.add(b.category.toLowerCase());
     });
-  }, []);
+    return Array.from(cats);
+  }, [allBhajans]);
 
-  // Handle back navigation
+  const allCategories = useMemo(() => {
+    const defaultCats = [{ id: 'all', name: 'All', icon: '🕉️' }];
+    const categoryCats = uniqueCategories.map(cat => ({
+      id: cat,
+      name: cat.charAt(0).toUpperCase() + cat.slice(1),
+      icon: getCategoryEmoji(cat),
+    }));
+    return [...defaultCats, ...categoryCats];
+  }, [uniqueCategories]);
+
   const handleBack = () => {
     router.back();
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <div className="w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (allBhajans.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center text-center px-4">
+        <p className="text-5xl mb-4">🎵</p>
+        <h2 className="text-2xl font-bold text-brown-900 dark:text-cream-50 mb-2">
+          No Bhajans Available
+        </h2>
+        <p className="text-brown-500 dark:text-cream-50/50">
+          Check back later for devotional music.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-x-hidden">
@@ -348,7 +486,9 @@ export default function BhajansPage() {
         </motion.div>
 
         {/* ── Featured Hero ── */}
-        <FeaturedHero bhajan={featuredBhajan} onOpen={handleOpenModal} />
+        {featuredBhajan && (
+          <FeaturedHero bhajan={featuredBhajan} onOpen={handleOpenModal} />
+        )}
 
         {/* ── Search ── */}
         <motion.div

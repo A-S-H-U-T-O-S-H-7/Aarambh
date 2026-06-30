@@ -387,3 +387,163 @@ export const getTrendingMedia = async (type = null, limitCount = 8) => {
     return { success: false, media: [] };
   }
 };
+
+// ==================== BHAJAN SPECIFIC FUNCTIONS ====================
+
+export const getBhajans = async (limitCount = 20) => {
+  try {
+    const mediaRef = collection(db, MEDIA_COLLECTION);
+    const q = query(
+      mediaRef,
+      where('mediaType', '==', 'bhajan'),
+      where('status', '==', 'published'),
+      orderBy('publishDate', 'desc'),
+      limit(limitCount)
+    );
+    const snapshot = await getDocs(q);
+    
+    const bhajans = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      bhajans.push({
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        thumbnail: data.thumbnail || '',
+        youtubeUrl: data.youtubeUrl || '',
+        videoId: data.videoId || '',
+        duration: data.duration || '',
+        category: data.category || '',
+        artist: data.artist || '',
+        album: data.album || '',
+        views: data.views || 0,
+        likes: data.likes || 0,
+        isFeatured: data.isFeatured || false,
+        isTrending: data.isTrending || false,
+        publishDate: data.publishDate || null,
+        description: data.description || '',
+        tags: data.tags || [],
+      });
+    });
+    
+    return { success: true, bhajans };
+  } catch (error) {
+    console.error('Error getting bhajans:', error);
+    return { success: false, bhajans: [] };
+  }
+};
+
+// Get featured bhajan
+export const getFeaturedBhajan = async () => {
+  try {
+    const mediaRef = collection(db, MEDIA_COLLECTION);
+    const q = query(
+      mediaRef,
+      where('mediaType', '==', 'bhajan'),
+      where('status', '==', 'published'),
+      where('isFeatured', '==', true),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      // If no featured, get latest bhajan
+      const latestQ = query(
+        mediaRef,
+        where('mediaType', '==', 'bhajan'),
+        where('status', '==', 'published'),
+        orderBy('publishDate', 'desc'),
+        limit(1)
+      );
+      const latestSnapshot = await getDocs(latestQ);
+      if (latestSnapshot.empty) {
+        return { success: false, bhajan: null };
+      }
+      const doc = latestSnapshot.docs[0];
+      const data = doc.data();
+      return {
+        success: true,
+        bhajan: {
+          id: doc.id,
+          title: data.title || '',
+          slug: data.slug || '',
+          thumbnail: data.thumbnail || '',
+          youtubeUrl: data.youtubeUrl || '',
+          videoId: data.videoId || '',
+          duration: data.duration || '',
+          category: data.category || '',
+          artist: data.artist || '',
+          views: data.views || 0,
+          likes: data.likes || 0,
+          isFeatured: data.isFeatured || false,
+          isTrending: data.isTrending || false,
+          description: data.description || '',
+        }
+      };
+    }
+    
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    return {
+      success: true,
+      bhajan: {
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        thumbnail: data.thumbnail || '',
+        youtubeUrl: data.youtubeUrl || '',
+        videoId: data.videoId || '',
+        duration: data.duration || '',
+        category: data.category || '',
+        artist: data.artist || '',
+        views: data.views || 0,
+        likes: data.likes || 0,
+        isFeatured: data.isFeatured || false,
+        isTrending: data.isTrending || false,
+        description: data.description || '',
+      }
+    };
+  } catch (error) {
+    console.error('Error getting featured bhajan:', error);
+    return { success: false, bhajan: null };
+  }
+};
+
+// Increment view count
+export const incrementMediaView = async (mediaId) => {
+  try {
+    const mediaRef = doc(db, MEDIA_COLLECTION, mediaId);
+    await updateDoc(mediaRef, {
+      views: increment(1)
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error incrementing view:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Toggle like
+export const toggleMediaLike = async (mediaId) => {
+  try {
+    const mediaRef = doc(db, MEDIA_COLLECTION, mediaId);
+    const mediaSnap = await getDoc(mediaRef);
+    
+    if (!mediaSnap.exists()) {
+      return { success: false, error: 'Media not found' };
+    }
+    
+    const data = mediaSnap.data();
+    const currentLikes = data.likes || 0;
+    
+    // Simple toggle - increment/decrement
+    await updateDoc(mediaRef, {
+      likes: currentLikes + 1
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error toggling like:', error);
+    return { success: false, error: error.message };
+  }
+};

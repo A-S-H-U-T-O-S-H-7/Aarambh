@@ -13,7 +13,6 @@ import {
   saveSong,
 } from '@/lib/services/dailyContentService';
 
-// Import all managers
 import HeroManager from './HeroManager';
 import MantraManager from './MantraManager';
 import WisdomManager from './WisdomManager';
@@ -49,28 +48,30 @@ export default function DailyManagementPage() {
     setLoading(false);
   };
 
-  const handleSave = async (type, data, saveFn, successMsg, entityTitle) => {
+  const handleSave = async (type, data, desktopImage, mobileImage, saveFn, successMsg, entityTitle) => {
     setSaving(true);
     
-    // Get old data for logging
     let oldData = null;
     if (type === 'hero') oldData = hero;
     else if (type === 'mantra') oldData = mantra;
     else if (type === 'wisdom') oldData = wisdom;
     else if (type === 'song') oldData = song;
 
-    const result = await saveFn(data);
+    let result;
+    if (type === 'hero') {
+      result = await saveFn(data, desktopImage, mobileImage);
+    } else {
+      result = await saveFn(data);
+    }
     
     if (result.success) {
       toast.success(successMsg);
       
-      // Update local state
       if (type === 'hero') setHero(data);
       else if (type === 'mantra') setMantra(data);
       else if (type === 'wisdom') setWisdom(data);
       else if (type === 'song') setSong(data);
 
-      // Log the activity
       await log({
         action: 'UPDATE',
         entityType: 'daily_content',
@@ -96,14 +97,13 @@ export default function DailyManagementPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header - More compact */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className={`text-xl font-bold ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
             Daily Content Management
           </h1>
           <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            Manage hero, mantra, wisdom, and background song
+            Manage hero, mantra, wisdom, background song, and hero images
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -115,33 +115,33 @@ export default function DailyManagementPage() {
         </div>
       </div>
 
-      {/* Grid: Hero + Song (Top Row) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <HeroManager
           data={hero}
-          onSave={(data) => handleSave('hero', data, saveHero, 'Hero section updated!', 'Hero Section')}
+          onSave={(data, desktopImage, mobileImage) => 
+            handleSave('hero', data, desktopImage, mobileImage, saveHero, 'Hero section updated!', 'Hero Section')
+          }
           isDark={isDark}
           saving={saving}
         />
         <SongManager
           data={song}
-          onSave={(data) => handleSave('song', data, saveSong, 'Song updated!', 'Background Song')}
+          onSave={(data) => handleSave('song', data, null, null, saveSong, 'Song updated!', 'Background Song')}
           isDark={isDark}
           saving={saving}
         />
       </div>
 
-      {/* Grid: Mantra + Wisdom (Bottom Row) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <MantraManager
           data={mantra}
-          onSave={(data) => handleSave('mantra', data, saveMantra, 'Mantra updated!', 'Mantra of the Day')}
+          onSave={(data) => handleSave('mantra', data, null, null, saveMantra, 'Mantra updated!', 'Mantra of the Day')}
           isDark={isDark}
           saving={saving}
         />
         <WisdomManager
           data={wisdom}
-          onSave={(data) => handleSave('wisdom', data, saveWisdom, 'Wisdom updated!', 'Wisdom of the Day')}
+          onSave={(data) => handleSave('wisdom', data, null, null, saveWisdom, 'Wisdom updated!', 'Wisdom of the Day')}
           isDark={isDark}
           saving={saving}
         />

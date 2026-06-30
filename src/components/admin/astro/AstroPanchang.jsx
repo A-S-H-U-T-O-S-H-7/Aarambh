@@ -10,6 +10,33 @@ import PanchangCard from "./PanchangCard";
 import ChoghadiyaTable from "./ChoghadiyaTable";
 import HoraTable from "./HoraTable";
 
+const normalizePanchangValue = (value) => {
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.filter((item) => item !== undefined && item !== null && item !== '').join(', ');
+  if (typeof value === 'object') {
+    return (
+      value.name ||
+      value.title ||
+      value.tithi_name ||
+      value.tithiName ||
+      value.nakshatra_name ||
+      value.nakshatraName ||
+      value.tithi_detail ||
+      value.tithiDetail ||
+      value.nakshatra_detail ||
+      value.nakshatraDetail ||
+      value.meaning ||
+      value.special ||
+      value.type ||
+      value.start ||
+      value.end ||
+      ''
+    );
+  }
+  return String(value);
+};
+
 const panchangFields = [
   { key: 'tithi', label: 'Tithi', icon: Moon },
   { key: 'tithiDetails', label: 'Tithi Details', icon: Moon },
@@ -184,7 +211,7 @@ export default function AstroPanchang({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {panchangFields.map((field) => {
                   const Icon = field.icon;
-                  const value = panchang[field.key];
+                  const value = normalizePanchangValue(panchang[field.key]);
                   return (
                     <PanchangCard
                       key={field.key}

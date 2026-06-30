@@ -14,7 +14,15 @@ export default function SongManager({ data, onSave, isDark, saving }) {
   });
 
   useEffect(() => {
-    if (data) setSong(data);
+    if (data) {
+      setSong({
+        title: data.title || 'Om Namah Shivaya',
+        artist: data.artist || 'Anup Jalota',
+        url: data.url || data.songUrl || '',
+        isPlaying: data.isPlaying !== undefined ? data.isPlaying : true,
+        festival: data.festival || 'Maha Shivaratri',
+      });
+    }
   }, [data]);
 
   const handleChange = (field, value) => {
@@ -82,7 +90,7 @@ export default function SongManager({ data, onSave, isDark, saving }) {
 
         <div>
           <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Audio URL (YouTube or MP3) *
+            Audio URL (Direct MP3 / audio file) *
           </label>
           <div className="flex gap-2">
             <input
