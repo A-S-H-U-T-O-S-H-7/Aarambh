@@ -13,12 +13,16 @@ import {
 } from 'react-icons/fa';
 import { GiLotus } from 'react-icons/gi';
 import StoryCard from '@/components/web/home/story/StoryCard';
-import {
-  storyCategories,
-  getCategoryStories,
-  getFeaturedStories,
-  stories,
-} from '@/lib/mockStoryData';
+import { useEffect } from 'react';
+import { getStories, getFeaturedStories } from '@/lib/services/storyService';
+
+const slugify = (value = '') =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 // ─── CategoryTabs ──────────────────────────────────────────────────────────────
 
@@ -64,34 +68,65 @@ export default function StoriesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [likedStories, setLikedStories] = useState([]);
 
-  // Category counts
-  const categoryCounts = useMemo(() => {
-    const counts = { all: stories.length };
-    stories.forEach((s) => {
-      counts[s.category] = (counts[s.category] || 0) + 1;
-    });
-    return counts;
+  const [allStories, setAllStories] = useState([]);
+  const [featuredStories, setFeaturedStories] = useState([]);
+  const [categoryCounts, setCategoryCounts] = useState({ all: 0 });
+
+  // Load stories from Firebase
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const res = await getStories(1, '', 'published');
+        const f = await getFeaturedStories(6);
+        if (!mounted) return;
+        const items = (res.success && res.stories) || [];
+        // normalize each story to expected fields
+        const normalized = items.map(s => ({
+          id: s.id,
+          slug: s.slug || slugify(s.title) || s.id,
+          title: s.title,
+          description: s.excerpt || s.description || '',
+          author: s.author || '',
+          tags: s.tags || [],
+          category: s.category || 'all',
+          image: s.featuredImage || (s.images && s.images[0]) || '/music.mpeg',
+          readingTime: s.readingTime || 5,
+          featured: s.isFeatured || false,
+        }));
+
+        setAllStories(normalized);
+        setFeaturedStories((f.success && f.stories) || []);
+
+        // compute counts
+        const counts = { all: normalized.length };
+        normalized.forEach((it) => {
+          counts[it.category] = (counts[it.category] || 0) + 1;
+        });
+        setCategoryCounts(counts);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    load();
+    return () => { mounted = false; };
   }, []);
 
   // Filtered list
   const filteredStories = useMemo(() => {
-    let results = getCategoryStories(activeCategory);
-    
+    let results = activeCategory === 'all' ? allStories : allStories.filter(s => s.category === activeCategory);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       results = results.filter(
         (s) =>
-          s.title.toLowerCase().includes(q) ||
-          s.description.toLowerCase().includes(q) ||
-          s.author.toLowerCase().includes(q) ||
-          s.tags.some(tag => tag.toLowerCase().includes(q))
+          (s.title || '').toLowerCase().includes(q) ||
+          (s.description || '').toLowerCase().includes(q) ||
+          (s.author || '').toLowerCase().includes(q) ||
+          (s.tags || []).some(tag => tag.toLowerCase().includes(q))
       );
     }
-    
     return results;
-  }, [activeCategory, searchQuery]);
-
-  const featuredStories = useMemo(() => getFeaturedStories(), []);
+  }, [activeCategory, searchQuery, allStories]);
 
   const handleLike = useCallback((id) => {
     setLikedStories(prev => {
@@ -105,15 +140,15 @@ export default function StoriesPage() {
 
   const isLiked = (id) => likedStories.includes(id);
 
-  // Deduplicate categories
+  // Build categories from counts
   const allCategories = useMemo(() => {
-    const seen = new Set();
-    return [{ id: 'all', name: 'All', icon: '📖' }, ...storyCategories].filter((c) => {
-      if (seen.has(c.id)) return false;
-      seen.add(c.id);
-      return true;
+    const cats = [{ id: 'all', name: 'All', icon: '📖' }];
+    Object.keys(categoryCounts).forEach((k) => {
+      if (k === 'all') return;
+      cats.push({ id: k, name: k.charAt(0).toUpperCase() + k.slice(1), icon: '📖' });
     });
-  }, []);
+    return cats;
+  }, [categoryCounts]);
 
   // Handle back navigation
   const handleBack = () => {

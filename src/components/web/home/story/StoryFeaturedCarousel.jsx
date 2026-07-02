@@ -13,6 +13,14 @@ import {
   FaUser
 } from 'react-icons/fa';
 
+const slugify = (value = '') =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 export default function StoryFeaturedCarousel({ stories }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -92,15 +100,22 @@ export default function StoryFeaturedCarousel({ stories }) {
                 {story.description}
               </p>
               
-              {/* Author */}
-              <div className="flex items-center space-x-2 text-sm text-white/60 mb-4">
-                <FaUser className="w-3 h-3" />
-                <span>{story.author}</span>
+              {/* Author & Source */}
+              <div className="flex flex-wrap items-center gap-2 text-sm text-white/60 mb-4">
+                {story.author ? (
+                  <div className="flex items-center space-x-2">
+                    <FaUser className="w-3 h-3" />
+                    <span>{story.author}</span>
+                  </div>
+                ) : null}
+                {story.source ? (
+                  <span className="text-white/50">• {story.source}</span>
+                ) : null}
               </div>
 
               {/* Read Button */}
               <Link
-                href={`/stories/${story.id}`}
+                href={`/stories/${story.slug || slugify(story.title) || story.id}`}
                 className="inline-flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-saffron to-gold text-white font-medium rounded-full hover:shadow-lg hover:shadow-gold/30 transition-all duration-300 hover:scale-105"
               >
                 <FaBookOpen className="w-4 h-4" />

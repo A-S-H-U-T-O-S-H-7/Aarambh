@@ -36,17 +36,16 @@ export default function Footer() {
     { name: 'Festivals', href: '/festivals' },
     { name: 'Stories', href: '/stories' },
     { name: 'Blogs', href: '/blogs' },
-    { name: 'Live Darshan', href: '/live-darshan' },
   ];
 
   // Support Links
   const supportLinks = [
     { name: 'About Us', href: '/about' },
-    { name: 'Contact Us', href: '/contact' },
+    { name: 'Contact Us', href: '/contact-us' },
     { name: 'Privacy Policy', href: '/privacy' },
     { name: 'Terms of Service', href: '/terms' },
     { name: 'Cookie Policy', href: '/cookie-policy' },
-    { name: 'Advertise With Us', href: '/advertise' },
+    { name: 'Advertise With Us', href: '/advertise-with-us' },
   ];
 
   // Social Media Links

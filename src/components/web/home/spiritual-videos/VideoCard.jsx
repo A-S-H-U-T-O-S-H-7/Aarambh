@@ -1,19 +1,17 @@
-// components/web/home/VideoCard.jsx
+// components/web/home/video/VideoCard.jsx
 'use client';
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
-import { 
-  FaPlay, 
+import {
+  FaPlay,
   FaPause,
-  FaClock, 
+  FaClock,
   FaEye,
   FaHeart,
   FaRegHeart,
   FaUserCircle
 } from 'react-icons/fa';
-import { formatViews } from '@/lib/mockVideoData';
 
 const getCategoryGradient = (category) => {
   const colors = {
@@ -45,8 +43,36 @@ const getCategoryEmoji = (category) => {
   return map[category] || '🎬';
 };
 
+const formatViews = (views) => {
+  if (!views) return '0';
+  if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
+  if (views >= 1000) return (views / 1000).toFixed(1) + 'K';
+  return views.toString();
+};
+
+// Helper to get YouTube thumbnail
+const getYouTubeThumbnail = (url) => {
+  if (!url) return null;
+  let videoId = null;
+  if (url.includes('youtu.be/')) {
+    const match = url.match(/youtu\.be\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('watch?v=')) {
+    const match = url.match(/watch\?v=([^&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('/shorts/')) {
+    const match = url.match(/\/shorts\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  } else if (url.includes('/embed/')) {
+    const match = url.match(/\/embed\/([^?&]+)/);
+    videoId = match ? match[1] : null;
+  }
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+};
+
 export default function VideoCard({ video, isPlaying, onPlay, onLike, isLiked, onClick }) {
   const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const handleCardClick = () => {
     if (onClick) onClick(video);
@@ -61,6 +87,8 @@ export default function VideoCard({ video, isPlaying, onPlay, onLike, isLiked, o
     e.stopPropagation();
     onLike?.(video.id);
   };
+
+  const thumbnailUrl = video.thumbnail || getYouTubeThumbnail(video.youtubeUrl);
 
   return (
     <motion.div
@@ -83,27 +111,35 @@ export default function VideoCard({ video, isPlaying, onPlay, onLike, isLiked, o
 
       {/* Thumbnail */}
       <div className={`relative aspect-video w-full bg-gradient-to-br ${getCategoryGradient(video.category)} overflow-hidden`}>
-        <Image
-          src={video.thumbnail}
-          alt={video.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {thumbnailUrl && !imgError ? (
+          <img
+            src={thumbnailUrl}
+            alt={video.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className={`text-5xl transition-all duration-300 ${hovered ? 'opacity-30 scale-110' : 'opacity-50'}`}>
+              {getCategoryEmoji(video.category)}
+            </span>
+          </div>
+        )}
 
-        {/* Category Emoji */}
+        {/* Dark overlay - slightly stronger on hover */}
+        <div className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${hovered || isPlaying ? 'opacity-60' : 'opacity-35'}`} />
+
+        {/* ─── SINGLE PLAY BUTTON ─── */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`text-5xl transition-all duration-300 ${hovered ? 'opacity-30 scale-110' : 'opacity-50'}`}>
-            {getCategoryEmoji(video.category)}
-          </span>
-        </div>
-
-        {/* Hover overlay — play CTA */}
-        <div className={`absolute inset-0 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 transition-opacity duration-300 ${hovered || isPlaying ? 'opacity-100' : 'opacity-0'}`}>
           <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.92 }}
             onClick={handlePlayClick}
-            className="w-12 h-12 rounded-full bg-gradient-to-br from-saffron to-gold text-white flex items-center justify-center shadow-lg"
+            className={`
+              w-11 h-11 rounded-full flex items-center justify-center shadow-lg
+              transition-all duration-300
+              bg-gradient-to-br from-saffron to-gold text-white scale-110 shadow-xl shadow-saffron/30
+            `}
           >
             {isPlaying ? (
               <FaPause className="w-4 h-4" />
@@ -111,7 +147,11 @@ export default function VideoCard({ video, isPlaying, onPlay, onLike, isLiked, o
               <FaPlay className="w-4 h-4 ml-0.5" />
             )}
           </motion.button>
-          <span className="text-[10px] text-white/80 font-medium">Watch now</span>
+        </div>
+
+        {/* ─── "Play" text - subtle hint ─── */}
+        <div className="absolute bottom-14 left-1/2 -translate-x-1/2 text-[9px] font-medium tracking-wide uppercase transition-all duration-300 text-white/90 opacity-100">
+          {isPlaying ? 'Now Playing' : 'Watch Now'}
         </div>
 
         {/* Category Badge */}
@@ -121,13 +161,15 @@ export default function VideoCard({ video, isPlaying, onPlay, onLike, isLiked, o
         </div>
 
         {/* Duration */}
-        <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[10px] rounded-full flex items-center gap-1">
-          <FaClock className="w-2.5 h-2.5" />
-          {video.duration}
-        </div>
+        {video.duration && (
+          <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[10px] rounded-full flex items-center gap-1">
+            <FaClock className="w-2.5 h-2.5" />
+            {video.duration}
+          </div>
+        )}
 
         {/* Featured Badge */}
-        {video.featured && (
+        {video.isFeatured && (
           <div className="absolute top-2 right-2 px-2 py-0.5 bg-gold text-brown-900 text-[9px] font-bold rounded-full shadow">
             ⭐ Featured
           </div>

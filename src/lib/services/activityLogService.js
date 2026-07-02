@@ -31,9 +31,11 @@ export const ActivityActions = {
   LOGIN: 'LOGIN',
   LOGOUT: 'LOGOUT',
   STATUS_CHANGE: 'STATUS_CHANGE',
+  SUBSCRIBE: 'SUBSCRIBE',
+  UNSUBSCRIBE: 'UNSUBSCRIBE',
 };
 
-// Activity entity types
+// Activity entity types - ADDED SUBSCRIBER
 export const ActivityEntityTypes = {
   BHAJAN: 'bhajan',
   VIDEO: 'video',
@@ -45,9 +47,12 @@ export const ActivityEntityTypes = {
   USER: 'user',
   ADMIN: 'admin',
   SETTINGS: 'settings',
+  SUBSCRIBER: 'subscriber',        
+  DAILY_CONTENT: 'daily_content', 
+  MEDIA: 'media',                 
 };
 
-// Log an activity
+// Log an activity - UPDATED with validation
 export const logActivity = async ({
   action,
   entityType,
@@ -56,22 +61,33 @@ export const logActivity = async ({
   oldData = null,
   newData = null,
   details = null,
-  adminId,
-  adminName,
-  adminRole,
+  adminId = null,
+  adminName = null,
+  adminRole = null,
 }) => {
   try {
+    // Validate required fields
+    if (!action) {
+      console.warn('⚠️ Activity log skipped: action is required');
+      return { success: false, error: 'action is required' };
+    }
+
+    if (!entityType) {
+      console.warn('⚠️ Activity log skipped: entityType is required');
+      return { success: false, error: 'entityType is required' };
+    }
+
     const activityData = {
       action,
       entityType,
-      entityId,
+      entityId: entityId || '',
       entityTitle: entityTitle || '',
       oldData: oldData ? JSON.stringify(oldData) : null,
       newData: newData ? JSON.stringify(newData) : null,
       details: details || '',
-      adminId,
-      adminName,
-      adminRole,
+      adminId: adminId || 'system',
+      adminName: adminName || 'System',
+      adminRole: adminRole || 'system',
       timestamp: serverTimestamp(),
     };
     

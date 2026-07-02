@@ -106,7 +106,11 @@ export const createStory = async (storyData, imageFiles) => {
       title: storyData.title,
       slug: storyData.slug || generateSlug(storyData.title),
       content: storyData.content,
-      excerpt: storyData.excerpt || storyData.content?.substring(0, 150).replace(/<[^>]*>/g, '') || '',
+      excerpt: storyData.excerpt || storyData.description || storyData.content?.substring(0, 150).replace(/<[^>]*>/g, '') || '',
+      description: storyData.description || storyData.excerpt || storyData.content?.substring(0, 160).replace(/<[^>]*>/g, '') || '',
+      author: storyData.author || '',
+      source: storyData.source || '',
+      moral: storyData.moral || '',
       category: storyData.category || '',
       tags: storyData.tags || [],
       images: imageUrls,
@@ -178,7 +182,11 @@ export const updateStory = async (storyId, storyData, imageFiles, existingImages
       title: storyData.title,
       slug: storyData.slug || generateSlug(storyData.title),
       content: storyData.content,
-      excerpt: storyData.excerpt || storyData.content?.substring(0, 150).replace(/<[^>]*>/g, '') || '',
+      excerpt: storyData.excerpt || storyData.description || storyData.content?.substring(0, 150).replace(/<[^>]*>/g, '') || '',
+      description: storyData.description || storyData.excerpt || storyData.content?.substring(0, 160).replace(/<[^>]*>/g, '') || '',
+      author: storyData.author || '',
+      source: storyData.source || '',
+      moral: storyData.moral || '',
       category: storyData.category || '',
       tags: storyData.tags || [],
       images: imageUrls,
@@ -231,7 +239,15 @@ export const getStories = async (page = 1, searchTerm = '', statusFilter = 'all'
       stories.push({
         id: doc.id,
         title: data.title || '',
-        excerpt: data.excerpt || '',
+        excerpt: data.excerpt || data.description || '',
+        description: data.description || data.excerpt || '',
+        author: data.author || '',
+        source: data.source || '',
+        moral: data.moral || data.description || '',
+        description: data.description || data.excerpt || '',
+        author: data.author || '',
+        source: data.source || '',
+        moral: data.moral || '',
         category: data.category || '',
         images: data.images || [],
         featuredImage: data.featuredImage || null,
@@ -296,7 +312,11 @@ export const getStoryById = async (storyId) => {
         title: data.title || '',
         slug: data.slug || '',
         content: data.content || '',
-        excerpt: data.excerpt || '',
+        excerpt: data.excerpt || data.description || '',
+        description: data.description || data.excerpt || '',
+        author: data.author || '',
+        source: data.source || '',
+        moral: data.moral || '',
         category: data.category || '',
         tags: data.tags || [],
         images: data.images || [],
@@ -315,6 +335,54 @@ export const getStoryById = async (storyId) => {
     };
   } catch (error) {
     console.error('Error getting story:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ==================== GET STORY BY SLUG ====================
+
+export const getStoryBySlug = async (slug) => {
+  try {
+    const storiesRef = collection(db, STORIES_COLLECTION);
+    const q = query(storiesRef, where('slug', '==', slug), limit(1));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return { success: false, error: 'Story not found' };
+    }
+
+    const docSnap = snapshot.docs[0];
+    const data = docSnap.data();
+    return {
+      success: true,
+      story: {
+        id: docSnap.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        content: data.content || '',
+        excerpt: data.excerpt || data.description || '',
+        description: data.description || data.excerpt || '',
+        author: data.author || '',
+        source: data.source || '',
+        moral: data.moral || '',
+        category: data.category || '',
+        tags: data.tags || [],
+        images: data.images || [],
+        featuredImage: data.featuredImage || null,
+        metatitle: data.metatitle || '',
+        metadesc: data.metadesc || '',
+        metakeywords: data.metakeywords || '',
+        status: data.status || 'draft',
+        isFeatured: data.isFeatured || false,
+        publishDate: data.publishDate || null,
+        views: data.views || 0,
+        createdAt: data.createdAt?.toDate?.() || null,
+        updatedAt: data.updatedAt?.toDate?.() || null,
+        publishedAt: data.publishedAt?.toDate?.() || null,
+      }
+    };
+  } catch (error) {
+    console.error('Error getting story by slug:', error);
     return { success: false, error: error.message };
   }
 };
@@ -406,8 +474,14 @@ export const getFeaturedStories = async (limitCount = 3) => {
         id: doc.id,
         title: data.title || '',
         slug: data.slug || '',
-        excerpt: data.excerpt || '',
+        excerpt: data.excerpt || data.description || '',
+        description: data.description || data.excerpt || '',
+        author: data.author || '',
+        source: data.source || '',
+        tags: data.tags || [],
+        images: data.images || [],
         featuredImage: data.featuredImage || null,
+        readingTime: data.readingTime || 5,
         category: data.category || '',
         views: data.views || 0,
         publishDate: data.publishDate || null,
@@ -441,8 +515,14 @@ export const getLatestStories = async (limitCount = 6) => {
         id: doc.id,
         title: data.title || '',
         slug: data.slug || '',
-        excerpt: data.excerpt || '',
+        excerpt: data.excerpt || data.description || '',
+        description: data.description || data.excerpt || '',
+        author: data.author || '',
+        source: data.source || '',
+        tags: data.tags || [],
+        images: data.images || [],
         featuredImage: data.featuredImage || null,
+        readingTime: data.readingTime || 5,
         category: data.category || '',
         views: data.views || 0,
         publishDate: data.publishDate || null,

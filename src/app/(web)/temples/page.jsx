@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,14 +15,16 @@ import {
   FaMapMarkerAlt,
 } from 'react-icons/fa';
 import { GiTempleGate } from 'react-icons/gi';
-import { 
-  templeCategories, 
-  getCategoryTemples,
-  getFeaturedTemples,
-  getLiveDarshanTemples,
-  temples
-} from '@/lib/mockTempleData';
+import { getPublishedTemples } from '@/lib/services/templeService';
 import TempleCard from '@/components/web/home/temple/TempleCard';
+
+const templeCategories = [
+  { id: 'north', name: 'North India', icon: '🛕' },
+  { id: 'south', name: 'South India', icon: '🛕' },
+  { id: 'east', name: 'East India', icon: '🛕' },
+  { id: 'west', name: 'West India', icon: '🛕' },
+  { id: 'central', name: 'Central India', icon: '🛕' },
+];
 
 // ─── CategoryTabs ──────────────────────────────────────────────────────────────
 
@@ -87,10 +89,29 @@ function QuickStats({ total, live, featured, regions }) {
 
 export default function TemplesPage() {
   const router = useRouter();
+  const [temples, setTemples] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [likedTemples, setLikedTemples] = useState([]);
   const [showLiveOnly, setShowLiveOnly] = useState(false);
+
+  useEffect(() => {
+    const fetchTemples = async () => {
+      setLoading(true);
+      try {
+        const result = await getPublishedTemples(100);
+        setTemples(result.success ? result.temples : []);
+      } catch (error) {
+        console.error('Error loading temples:', error);
+        setTemples([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTemples();
+  }, []);
 
   // Category counts
   const categoryCounts = useMemo(() => {
@@ -99,20 +120,22 @@ export default function TemplesPage() {
       counts[t.category] = (counts[t.category] || 0) + 1;
     });
     return counts;
-  }, []);
+  }, [temples]);
 
   // Filtered list
   const filteredTemples = useMemo(() => {
-    let results = getCategoryTemples(activeCategory);
+    let results = activeCategory === 'all'
+      ? temples
+      : temples.filter((temple) => temple.category === activeCategory);
     
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       results = results.filter(
         (t) =>
-          t.name.toLowerCase().includes(q) ||
-          t.location.toLowerCase().includes(q) ||
-          t.deity.toLowerCase().includes(q) ||
-          t.significance.toLowerCase().includes(q)
+          (t.title || '').toLowerCase().includes(q) ||
+          (t.location || '').toLowerCase().includes(q) ||
+          (t.deity || '').toLowerCase().includes(q) ||
+          (t.shortDescription || '').toLowerCase().includes(q)
       );
     }
     
@@ -121,10 +144,10 @@ export default function TemplesPage() {
     }
     
     return results;
-  }, [activeCategory, searchQuery, showLiveOnly]);
+  }, [activeCategory, searchQuery, showLiveOnly, temples]);
 
-  const featuredTemples = useMemo(() => getFeaturedTemples(), []);
-  const liveTemples = useMemo(() => getLiveDarshanTemples(), []);
+  const featuredTemples = useMemo(() => temples.filter((temple) => temple.featured), [temples]);
+  const liveTemples = useMemo(() => temples.filter((temple) => temple.liveDarshan), [temples]);
 
   const handleLike = useCallback((id) => {
     setLikedTemples(prev => {
@@ -264,20 +287,22 @@ export default function TemplesPage() {
           
           <div className="flex items-center gap-2">
             {/* Live Darshan Filter */}
-            <button
-              onClick={() => setShowLiveOnly(!showLiveOnly)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
-                showLiveOnly
-                  ? 'bg-divine-red text-white shadow-lg shadow-divine-red/20'
-                  : 'bg-white/80 dark:bg-brown-800/80 border border-gold/20 dark:border-gold/10 text-brown-600 dark:text-cream-50/60 hover:border-gold/40'
-              }`}
-            >
-              <FaVideo className="w-3 h-3" />
-              Live Darshan
-              {showLiveOnly && (
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              )}
-            </button>
+            {liveTemples.length > 0 && (
+              <button
+                onClick={() => setShowLiveOnly(!showLiveOnly)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
+                  showLiveOnly
+                    ? 'bg-divine-red text-white shadow-lg shadow-divine-red/20'
+                    : 'bg-white/80 dark:bg-brown-800/80 border border-gold/20 dark:border-gold/10 text-brown-600 dark:text-cream-50/60 hover:border-gold/40'
+                }`}
+              >
+                <FaVideo className="w-3 h-3" />
+                Live Darshan
+                {showLiveOnly && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                )}
+              </button>
+            )}
 
             {activeCategory !== 'all' && (
               <button
@@ -291,7 +316,11 @@ export default function TemplesPage() {
         </div>
 
         {/* ── Grid ── */}
-        {filteredTemples.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="w-10 h-10 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filteredTemples.length > 0 ? (
           <motion.div
             layout
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5"

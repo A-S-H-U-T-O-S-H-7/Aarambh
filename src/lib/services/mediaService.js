@@ -53,6 +53,35 @@ export const getYouTubeThumbnail = (videoId) => {
   return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 };
 
+const normalizeVideoType = (videoType) => {
+  if (!videoType || videoType === 'all') return null;
+  const normalized = String(videoType).toLowerCase();
+  return ['standard', 'short', 'reel'].includes(normalized) ? normalized : 'standard';
+};
+
+const mapVideoDocument = (doc) => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: data.title || '',
+    slug: data.slug || '',
+    description: data.description || '',
+    category: data.category || '',
+    thumbnail: data.thumbnail || '',
+    youtubeUrl: data.youtubeUrl || '',
+    videoId: data.videoId || '',
+    duration: data.duration || '',
+    views: data.views || 0,
+    likes: data.likes || 0,
+    isFeatured: data.isFeatured || false,
+    isTrending: data.isTrending || false,
+    videoType: data.videoType || 'standard',
+    speaker: data.artist || data.speaker || '',
+    publishDate: data.publishDate || null,
+    tags: data.tags || [],
+  };
+};
+
 // ==================== CREATE MEDIA ====================
 
 export const createMedia = async (mediaData) => {
@@ -62,6 +91,7 @@ export const createMedia = async (mediaData) => {
     
     const mediaRef = await addDoc(collection(db, MEDIA_COLLECTION), {
       mediaType: mediaType,
+      videoType: normalizeVideoType(mediaData.videoType || (mediaType === 'video' ? 'standard' : null)),
       title: mediaData.title,
       slug: mediaData.slug || generateSlug(mediaData.title),
       description: mediaData.description || '',
@@ -102,6 +132,7 @@ export const updateMedia = async (mediaId, mediaData) => {
     
     const updateData = {
       mediaType: mediaData.mediaType,
+      videoType: normalizeVideoType(mediaData.videoType || (mediaData.mediaType === 'video' ? 'standard' : null)),
       title: mediaData.title,
       slug: mediaData.slug || generateSlug(mediaData.title),
       description: mediaData.description || '',
@@ -158,6 +189,7 @@ export const getMedia = async (page = 1, searchTerm = '', statusFilter = 'all', 
       media.push({
         id: doc.id,
         mediaType: data.mediaType || 'video',
+        videoType: data.videoType || 'standard',
         title: data.title || '',
         thumbnail: data.thumbnail || '',
         category: data.category || '',
@@ -225,6 +257,7 @@ export const getMediaById = async (mediaId) => {
       media: {
         id: mediaSnap.id,
         mediaType: data.mediaType || 'video',
+        videoType: data.videoType || 'standard',
         title: data.title || '',
         slug: data.slug || '',
         description: data.description || '',
@@ -433,7 +466,7 @@ export const getBhajans = async (limitCount = 20) => {
   }
 };
 
-// Get featured bhajan
+// Get featured bhajan 
 export const getFeaturedBhajan = async () => {
   try {
     const mediaRef = collection(db, MEDIA_COLLECTION);
@@ -537,6 +570,220 @@ export const toggleMediaLike = async (mediaId) => {
     const currentLikes = data.likes || 0;
     
     // Simple toggle - increment/decrement
+    await updateDoc(mediaRef, {
+      likes: currentLikes + 1
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error toggling like:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+
+// ==================== VIDEO SPECIFIC FUNCTIONS ====================
+
+// Get all videos (full video, shorts, reels)
+export const getVideos = async (limitCount = 20, videoType = null) => {
+  try {
+    const mediaRef = collection(db, MEDIA_COLLECTION);
+    const normalizedVideoType = normalizeVideoType(videoType);
+    let constraints = [
+      where('mediaType', '==', 'video'),
+      where('status', '==', 'published'),
+      orderBy('publishDate', 'desc'),
+      limit(limitCount)
+    ];
+    
+    if (normalizedVideoType) {
+      constraints.unshift(where('videoType', '==', normalizedVideoType));
+    }
+    
+    const q = query(mediaRef, ...constraints);
+    const snapshot = await getDocs(q);
+    
+    const videos = snapshot.docs.map(mapVideoDocument);
+    return { success: true, videos };
+  } catch (error) {
+    console.error('Error getting videos:', error);
+    try {
+      const mediaRef = collection(db, MEDIA_COLLECTION);
+      const fallbackQ = query(
+        mediaRef,
+        where('mediaType', '==', 'video'),
+        where('status', '==', 'published'),
+        orderBy('publishDate', 'desc'),
+        limit(limitCount)
+      );
+      const fallbackSnapshot = await getDocs(fallbackQ);
+      const videos = fallbackSnapshot.docs
+        .map(mapVideoDocument)
+        .filter((video) => !normalizeVideoType(videoType) || video.videoType === normalizeVideoType(videoType));
+      return { success: true, videos };
+    } catch (fallbackError) {
+      console.error('Error getting videos with fallback query:', fallbackError);
+      return { success: false, videos: [] };
+    }
+  }
+};
+
+// Get trending videos
+export const getTrendingVideos = async (limitCount = 6, videoType = 'standard') => {
+  try {
+    const mediaRef = collection(db, MEDIA_COLLECTION);
+    const normalizedVideoType = normalizeVideoType(videoType);
+    let constraints = [
+      where('mediaType', '==', 'video'),
+      where('status', '==', 'published'),
+      where('isTrending', '==', true),
+      orderBy('publishDate', 'desc'),
+      limit(limitCount)
+    ];
+
+    if (normalizedVideoType) {
+      constraints.unshift(where('videoType', '==', normalizedVideoType));
+    }
+
+    const q = query(mediaRef, ...constraints);
+    const snapshot = await getDocs(q);
+
+    const videos = snapshot.docs.map(mapVideoDocument);
+    return { success: true, videos };
+  } catch (error) {
+    console.error('Error getting trending videos:', error);
+    try {
+      const mediaRef = collection(db, MEDIA_COLLECTION);
+      const fallbackQ = query(
+        mediaRef,
+        where('mediaType', '==', 'video'),
+        where('status', '==', 'published'),
+        where('isTrending', '==', true),
+        orderBy('publishDate', 'desc'),
+        limit(limitCount)
+      );
+      const fallbackSnapshot = await getDocs(fallbackQ);
+      const videos = fallbackSnapshot.docs
+        .map(mapVideoDocument)
+        .filter((video) => !normalizeVideoType(videoType) || video.videoType === normalizeVideoType(videoType));
+      return { success: true, videos };
+    } catch (fallbackError) {
+      console.error('Error getting trending videos with fallback query:', fallbackError);
+      return { success: false, videos: [] };
+    }
+  }
+};
+
+// Get latest videos
+export const getLatestVideos = async (limitCount = 12, videoType = null) => {
+  try {
+    const mediaRef = collection(db, MEDIA_COLLECTION);
+    const normalizedVideoType = normalizeVideoType(videoType);
+    let constraints = [
+      where('mediaType', '==', 'video'),
+      where('status', '==', 'published'),
+      orderBy('publishDate', 'desc'),
+      limit(limitCount)
+    ];
+    
+    if (normalizedVideoType) {
+      constraints.unshift(where('videoType', '==', normalizedVideoType));
+    }
+    
+    const q = query(mediaRef, ...constraints);
+    const snapshot = await getDocs(q);
+    
+    const videos = snapshot.docs.map(mapVideoDocument);
+    return { success: true, videos };
+  } catch (error) {
+    console.error('Error getting latest videos:', error);
+    try {
+      const mediaRef = collection(db, MEDIA_COLLECTION);
+      const fallbackQ = query(
+        mediaRef,
+        where('mediaType', '==', 'video'),
+        where('status', '==', 'published'),
+        orderBy('publishDate', 'desc'),
+        limit(limitCount)
+      );
+      const fallbackSnapshot = await getDocs(fallbackQ);
+      const videos = fallbackSnapshot.docs
+        .map(mapVideoDocument)
+        .filter((video) => !normalizeVideoType(videoType) || video.videoType === normalizeVideoType(videoType));
+      return { success: true, videos };
+    } catch (fallbackError) {
+      console.error('Error getting latest videos with fallback query:', fallbackError);
+      return { success: false, videos: [] };
+    }
+  }
+};
+
+// Get video by ID
+export const getVideoById = async (videoId) => {
+  try {
+    const mediaRef = doc(db, MEDIA_COLLECTION, videoId);
+    const mediaSnap = await getDoc(mediaRef);
+    
+    if (!mediaSnap.exists()) {
+      return { success: false, error: 'Video not found' };
+    }
+    
+    const data = mediaSnap.data();
+    return {
+      success: true,
+      video: {
+        id: mediaSnap.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        description: data.description || '',
+        category: data.category || '',
+        thumbnail: data.thumbnail || '',
+        youtubeUrl: data.youtubeUrl || '',
+        videoId: data.videoId || '',
+        duration: data.duration || '',
+        views: data.views || 0,
+        likes: data.likes || 0,
+        isFeatured: data.isFeatured || false,
+        isTrending: data.isTrending || false,
+        videoType: data.videoType || 'standard',
+        speaker: data.artist || data.speaker || '',
+        publishDate: data.publishDate || null,
+        tags: data.tags || [],
+      }
+    };
+  } catch (error) {
+    console.error('Error getting video:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Increment video view
+export const incrementVideoView = async (videoId) => {
+  try {
+    const mediaRef = doc(db, MEDIA_COLLECTION, videoId);
+    await updateDoc(mediaRef, {
+      views: increment(1)
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error incrementing view:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Toggle video like
+export const toggleVideoLike = async (videoId) => {
+  try {
+    const mediaRef = doc(db, MEDIA_COLLECTION, videoId);
+    const mediaSnap = await getDoc(mediaRef);
+    
+    if (!mediaSnap.exists()) {
+      return { success: false, error: 'Video not found' };
+    }
+    
+    const data = mediaSnap.data();
+    const currentLikes = data.likes || 0;
+    
     await updateDoc(mediaRef, {
       likes: currentLikes + 1
     });

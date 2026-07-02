@@ -9,6 +9,7 @@ import {
   Video
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function TempleCarousel({ temples }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -132,10 +133,15 @@ export default function TempleCarousel({ temples }) {
 
   const renderCard = (card, position, isActive = false) => {
     if (!card) return null;
+    const title = card.title || 'Sacred temple';
+    const image = card.featuredImage || card.images?.[0] || '';
+    
+    // Use unique key: position + card.id to ensure uniqueness
+    const uniqueKey = `${position}-${card.id}`;
     
     return (
       <motion.div
-        key={card.id}
+        key={uniqueKey}
         className="absolute w-full h-full cursor-pointer"
         variants={cardVariants}
         initial={position === 'active' ? 'active' : position === 'next' ? 'next' : position === 'prev' ? 'prev' : 'hidden'}
@@ -155,12 +161,18 @@ export default function TempleCarousel({ temples }) {
         <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50">
           {/* Image */}
           <div className="relative w-full h-full">
-            <Image
-              src={card.image}
-              alt={card.name}
-              fill
-              className="object-cover"
-            />
+            {image ? (
+              <Image
+                src={image}
+                alt={`${title} temple`}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#E8742C] to-[#F4B400] flex items-center justify-center text-white text-6xl">
+                <span aria-hidden="true">🛕</span>
+              </div>
+            )}
 
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -168,33 +180,25 @@ export default function TempleCarousel({ temples }) {
             {/* Badge */}
             <div className="absolute top-3 left-3">
               <span className="px-2.5 py-1 bg-saffron text-white text-[9px] font-bold rounded-full uppercase shadow-lg">
-                {card.deity}
+                {card.deity || 'Sacred'}
               </span>
             </div>
-
-            {/* Live Darshan Badge */}
-            {card.liveDarshan && (
-              <div className="absolute top-3 right-3">
-                <span className="px-2.5 py-1 bg-divine-red text-white text-[9px] font-bold rounded-full uppercase shadow-lg flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                  Live
-                </span>
-              </div>
-            )}
 
             {/* Content */}
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <h4 className="text-white text-sm font-bold leading-snug line-clamp-2 mb-1.5">
-                {card.name}
+                {title}
               </h4>
               <div className="flex items-center gap-3 text-white/70 text-[9px]">
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {card.location}
-                </span>
+                {card.location && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {card.location}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <Star className="w-3 h-3 text-gold" />
-                  {card.rating}
+                  {card.views || 0}
                 </span>
               </div>
             </div>
@@ -205,7 +209,11 @@ export default function TempleCarousel({ temples }) {
   };
 
   const handleCardClick = (card) => {
-    window.location.href = `/temples/${card.id}`;
+    if (card.slug) {
+      window.location.href = `/temples/${card.slug}`;
+    } else {
+      window.location.href = '/temples';
+    }
   };
 
   return (

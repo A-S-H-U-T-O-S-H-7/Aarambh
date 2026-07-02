@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaStar, FaUserFriends, FaSmile } from 'react-icons/fa';
-import { zodiacSigns } from '@/lib/mockAstroData';
+import { zodiacSigns } from '@/lib/services/horoscopeService';
 
 // Zodiac grouped by classical element, each tied to a brand-cohesive tone
 // instead of a full rainbow — fire/earth/air/water still read as distinct,

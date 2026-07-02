@@ -14,6 +14,14 @@ import {
   FaTags
 } from 'react-icons/fa';
 
+const slugify = (value = '') =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 export default function StoryCard({ story, isFeatured = false, onLike, isLiked }) {
   const [hovered, setHovered] = useState(false);
 
@@ -36,6 +44,8 @@ export default function StoryCard({ story, isFeatured = false, onLike, isLiked }
     };
     return emojis[category] || '📖';
   };
+
+  const storyLink = `/stories/${story.slug || slugify(story.title) || story.id}`;
 
   return (
     <motion.div
@@ -74,7 +84,7 @@ export default function StoryCard({ story, isFeatured = false, onLike, isLiked }
         {/* Overlay on Hover */}
         <div className={`absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center transition-opacity duration-300 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
           <Link
-            href={`/stories/${story.id}`}
+            href={storyLink}
             className="px-6 py-2.5 bg-gradient-to-r from-saffron to-gold text-white font-medium rounded-full hover:shadow-lg hover:shadow-gold/30 transition-all duration-300 hover:scale-105 flex items-center space-x-2"
           >
             <FaBookOpen className="w-4 h-4" />
@@ -87,7 +97,7 @@ export default function StoryCard({ story, isFeatured = false, onLike, isLiked }
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <Link href={`/stories/${story.id}`}>
+            <Link href={storyLink}>
               <h3 className="text-sm font-semibold text-brown-900 dark:text-cream-50 line-clamp-2 group-hover:text-saffron transition-colors">
                 {story.title}
               </h3>

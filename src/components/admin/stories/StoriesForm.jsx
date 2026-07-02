@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { FileText, Globe, Hash, Tag, FolderOpen } from "lucide-react";
+import { FileText, Globe, Hash, Tag, FolderOpen, User, Library } from "lucide-react";
 import RichTextEditor from "../RichTextEditor";
 
 const generateSlug = (title) => {
@@ -223,7 +223,94 @@ export default function StoriesForm({ formData, errors, onInputChange, isDark, c
         </div>
       </div>
 
-      {/* Card 2: Story Content */}
+      {/* Card 2: Story Details */}
+      <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
+        isDark 
+          ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
+          : 'border-gray-200 bg-white shadow-md'
+      }`}>
+        <div className="flex items-center gap-3 mb-5 pb-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}">
+          <div className="rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 p-2">
+            <Library className="w-4 h-4 text-white" />
+          </div>
+          <h3 className={`text-base font-semibold ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+            Story Details
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              <User className="w-4 h-4 inline mr-1.5" />
+              Author
+            </label>
+            <input
+              type="text"
+              value={formData.author || ''}
+              onChange={(e) => onInputChange("author", e.target.value)}
+              className={`w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                isDark
+                  ? "bg-gray-900 border-gray-700 text-gray-100 focus:border-yellow-500"
+                  : "bg-gray-50 border-gray-300 text-gray-800 focus:border-yellow-400"
+              } border-2 focus:outline-none focus:ring-2 focus:ring-yellow-400/20`}
+              placeholder="Author name"
+            />
+          </div>
+
+          <div>
+            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Source
+            </label>
+            <input
+              type="text"
+              value={formData.source || ''}
+              onChange={(e) => onInputChange("source", e.target.value)}
+              className={`w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                isDark
+                  ? "bg-gray-900 border-gray-700 text-gray-100 focus:border-yellow-500"
+                  : "bg-gray-50 border-gray-300 text-gray-800 focus:border-yellow-400"
+              } border-2 focus:outline-none focus:ring-2 focus:ring-yellow-400/20`}
+              placeholder="Scripture, saint, tradition, etc."
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            Short Description
+          </label>
+          <textarea
+            value={formData.description || ''}
+            onChange={(e) => onInputChange("description", e.target.value)}
+            rows={3}
+            className={`w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+              isDark
+                ? "bg-gray-900 border-gray-700 text-gray-100 focus:border-yellow-500"
+                : "bg-gray-50 border-gray-300 text-gray-800 focus:border-yellow-400"
+            } border-2 focus:outline-none focus:ring-2 focus:ring-yellow-400/20`}
+            placeholder="Brief summary for the story card and detail page"
+          />
+        </div>
+
+        <div className="mt-4">
+          <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            Moral of the Story
+          </label>
+          <textarea
+            value={formData.moral || ''}
+            onChange={(e) => onInputChange("moral", e.target.value)}
+            rows={3}
+            className={`w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+              isDark
+                ? "bg-gray-900 border-gray-700 text-gray-100 focus:border-yellow-500"
+                : "bg-gray-50 border-gray-300 text-gray-800 focus:border-yellow-400"
+            } border-2 focus:outline-none focus:ring-2 focus:ring-yellow-400/20`}
+            placeholder="The lesson or takeaway from the story"
+          />
+        </div>
+      </div>
+
+      {/* Card 3: Story Content */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
@@ -248,7 +335,7 @@ export default function StoriesForm({ formData, errors, onInputChange, isDark, c
         {errors.content && <p className="text-red-500 text-xs mt-2">{errors.content}</p>}
       </div>
 
-      {/* Card 3: SEO Settings */}
+      {/* Card 4: SEO Settings */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 

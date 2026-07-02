@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Calendar, Save, Star, TrendingUp, Clock } from "lucide-react";
+import { Calendar, Save, Star, TrendingUp, Clock, Video } from "lucide-react";
 import { FaYoutube } from "react-icons/fa";
 
 // Toggle Switch Component
@@ -128,6 +128,51 @@ export default function MediaSidebar({
           </div>
         </div>
       </div>
+
+
+{/* Video Type - Only for videos */}
+{formData.mediaType === 'video' && (
+  <div className={`rounded-2xl border p-5 transition-all duration-300 hover:shadow-xl ${
+    isDark 
+      ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
+      : 'border-gray-200 bg-white shadow-md'
+  }`}>
+    <div className="flex items-center gap-2.5 mb-4">
+      <div className="rounded-lg bg-gradient-to-r from-purple-400 to-purple-500 p-1.5">
+        <Video className="w-4 h-4 text-white" />
+      </div>
+      <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+        Video Type
+      </h3>
+    </div>
+
+    <div>
+      <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+        Select Video Format
+      </label>
+      <select
+        value={formData.videoType || 'standard'}
+        onChange={(e) => onInputChange('videoType', e.target.value)}
+        className={`w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 cursor-pointer ${
+          isDark
+            ? 'bg-gray-900 border-gray-700 text-gray-100 focus:border-yellow-500'
+            : 'bg-gray-50 border-gray-300 text-gray-800 focus:border-yellow-400'
+        } border-2 focus:outline-none focus:ring-2 focus:ring-yellow-400/20`}
+      >
+        <option value="standard">🎬 Full Video (16:9)</option>
+        <option value="short">📱 Short (4:5)</option>
+        <option value="reel">📱 Reel (4:5)</option>
+      </select>
+      <div className={`mt-2 p-2 rounded-lg ${formData.videoType === 'standard' ? 'bg-blue-500/10 border border-blue-500/30' : formData.videoType === 'short' || formData.videoType === 'reel' ? 'bg-purple-500/10 border border-purple-500/30' : ''}`}>
+        <p className="text-xs text-blue-600 dark:text-blue-400">
+          {formData.videoType === 'standard' && '🎬 Full video format for regular content'}
+          {formData.videoType === 'short' && '📱 Short format for mobile-first content (Instagram Style)'}
+          {formData.videoType === 'reel' && '📱 Reel format for social media style content (Instagram Style)'}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Featured Options Card */}
       <div className={`rounded-2xl border p-5 transition-all duration-300 hover:shadow-xl ${

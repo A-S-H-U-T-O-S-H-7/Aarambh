@@ -18,10 +18,16 @@ import {
 import { GiLotus } from 'react-icons/gi';
 import StoryFeaturedCarousel from './StoryFeaturedCarousel';
 import StoryCard from './StoryCard';
-import {
-  getFeaturedStories,
-  stories,
-} from '@/lib/mockStoryData';
+import { getFeaturedStories, getLatestStories } from '@/lib/services/storyService';
+import { useEffect } from 'react';
+
+const slugify = (value = '') =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 // Compact sidebar card — horizontal layout
 function SideStoryCard({ story, onLike, isLiked, index }) {
@@ -54,7 +60,7 @@ function SideStoryCard({ story, onLike, isLiked, index }) {
       className="group flex gap-3 p-3 rounded-xl bg-white dark:bg-brown-800/70 border border-gold/15 dark:border-gold/10 hover:border-gold/40 hover:shadow-md hover:shadow-gold/10 transition-all duration-300"
     >
       {/* Thumbnail */}
-      <Link href={`/stories/${story.id}`} className="flex-shrink-0">
+      <Link href={`/stories/${story.slug || story.id}`} className="flex-shrink-0">
         <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gradient-to-br from-saffron/20 to-gold/20">
           <Image
             src={story.image}
@@ -75,22 +81,40 @@ function SideStoryCard({ story, onLike, isLiked, index }) {
           </span>
 
           {/* Title */}
-          <Link href={`/stories/${story.id}`}>
+          <Link href={`/stories/${story.slug || story.id}`}>
             <h4 className="text-xs font-semibold text-brown-900 dark:text-cream-50 line-clamp-2 leading-snug group-hover:text-saffron transition-colors">
               {story.title}
             </h4>
           </Link>
+
+          {/* Short description */}
+          {story.description ? (
+            <p className="mt-1 text-[11px] text-brown-500 dark:text-cream-50/60 line-clamp-2">
+              {story.description}
+            </p>
+          ) : null}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-1.5">
+        <div className="flex flex-col gap-1 mt-1.5">
           <div className="flex items-center gap-1.5 text-[10px] text-brown-400 dark:text-cream-50/40">
             <FaClock className="w-2.5 h-2.5" />
             <span>{story.readingTime} min</span>
-            <span className="opacity-40">·</span>
-            <FaUser className="w-2.5 h-2.5" />
-            <span className="truncate max-w-[60px]">{story.author}</span>
+            {story.author ? (
+              <>
+                <span className="opacity-40">·</span>
+                <FaUser className="w-2.5 h-2.5" />
+                <span className="truncate max-w-[60px]">{story.author}</span>
+              </>
+            ) : null}
           </div>
+
+          {/* {story.source ? (
+            <p className="text-[10px] text-brown-500 dark:text-cream-50/50 truncate">
+              Source: {story.source}
+            </p>
+          ) : null} */}
+
           <button
             onClick={() => onLike?.(story.id)}
             className="p-1 rounded-full hover:bg-saffron/10 transition-colors"
@@ -109,10 +133,43 @@ function SideStoryCard({ story, onLike, isLiked, index }) {
 
 export default function SpiritualStories() {
   const [likedStories, setLikedStories] = useState([]);
+  const [featuredStories, setFeaturedStories] = useState([]);
+  const [sidebarStories, setSidebarStories] = useState([]);
 
-  const featuredStories = getFeaturedStories();
-  // Sidebar shows up to 4 non-featured stories
-  const sidebarStories = stories.filter((s) => !s.featured).slice(0, 4);
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const f = await getFeaturedStories(3);
+        const l = await getLatestStories(6);
+        if (mounted) {
+          const feat = (f.success && f.stories) || [];
+          const latest = (l.success && l.stories) || [];
+
+          const normalize = (s) => ({
+            id: s.id,
+            slug: s.slug || slugify(s.title) || s.id,
+            title: s.title,
+            description: s.description || s.excerpt || '',
+            author: s.author || '',
+            source: s.source || '',
+            tags: s.tags || [],
+            category: s.category || 'spiritual',
+            image: s.featuredImage || (s.images && s.images[0]) || '/music.mpeg',
+            readingTime: s.readingTime || 5,
+            featured: s.isFeatured || false,
+          });
+
+          setFeaturedStories(feat.map(normalize));
+          setSidebarStories(latest.filter(s => !s.isFeatured).slice(0, 4).map(normalize));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   const handleLike = (id) => {
     setLikedStories((prev) =>

@@ -1,21 +1,72 @@
 // components/home/FestivalHub.jsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FaArrowRight, FaClock, FaStar } from 'react-icons/fa';
 import { GiSparkles } from 'react-icons/gi';
 import FestivalCarousel from './FestivalCarousel';
 import FestivalTimelineCard from './FestivalTimelineCard';
-import { getFeaturedFestivals, getUpcomingFestivals } from '@/lib/mockFestivalData';
+import { getFeaturedFestivals, getUpcomingFestivals } from '@/lib/services/festivalService';
 
 export default function FestivalHub() {
-  const featuredFestivals = getFeaturedFestivals();
-  const upcomingFestivals = getUpcomingFestivals();
+  const [featuredFestivals, setFeaturedFestivals] = useState([]);
+  const [upcomingFestivals, setUpcomingFestivals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [featuredResult, upcomingResult] = await Promise.all([
+          getFeaturedFestivals(6),
+          getUpcomingFestivals(10),
+        ]);
+        
+        if (featuredResult.success) {
+          // Ensure each festival has a slug
+          const featuredWithSlug = featuredResult.festivals.map(f => ({
+            ...f,
+            slug: f.slug || f.id
+          }));
+          setFeaturedFestivals(featuredWithSlug);
+        }
+        
+        if (upcomingResult.success) {
+          const upcomingWithSlug = upcomingResult.festivals.map(f => ({
+            ...f,
+            slug: f.slug || f.id
+          }));
+          setUpcomingFestivals(upcomingWithSlug);
+        }
+      } catch (error) {
+        console.error('Error fetching festivals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-6 md:py-8 relative overflow-hidden bg-[#FBF3E7] dark:bg-[#15100C]">
+        <div className="flex justify-center items-center py-12">
+          <div className="w-10 h-10 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </section>
+    );
+  }
+
+  // If no festivals, don't render
+  if (featuredFestivals.length === 0 && upcomingFestivals.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-6 md:py-8 relative overflow-hidden bg-[#FBF3E7] dark:bg-[#15100C]">
-      {/* Layered gradient mesh — same system used across the site so sections feel like one family */}
+      {/* Background gradients */}
       <div
         className="absolute inset-0 opacity-100 dark:opacity-0 transition-opacity"
         style={{
@@ -37,7 +88,7 @@ export default function FestivalHub() {
         }}
       />
 
-      {/* Subtle confetti accents — kept but dimmed so they don't fight with content */}
+      {/* Subtle confetti accents */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 left-10 text-3xl opacity-[0.07] dark:opacity-[0.06]">🎊</div>
         <div className="absolute top-20 right-20 text-2xl opacity-[0.07] dark:opacity-[0.06]">🎉</div>

@@ -51,10 +51,15 @@ export default function TempleRail({ temples }) {
         className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {temples.map((temple) => (
+        {temples.map((temple) => {
+          const title = temple.title || 'Sacred temple';
+          const image = temple.featuredImage || temple.images?.[0] || '';
+          const href = temple.slug ? `/temples/${temple.slug}` : '/temples';
+
+          return (
           <Link
             key={temple.id}
-            href={`/temples/${temple.id}`}
+            href={href}
             className="flex-shrink-0 cursor-pointer group/card transition-all duration-300 hover:scale-[1.02]"
             style={{ width: "240px" }}
           >
@@ -64,12 +69,18 @@ export default function TempleRail({ temples }) {
             >
               {/* Image */}
               <div className="relative w-full h-full">
-                <Image
-                  src={temple.image}
-                  alt={temple.name}
-                  fill
-                  className="object-cover transition-transform duration-300 group-hover/card:scale-105"
-                />
+                {image ? (
+                  <Image
+                    src={image}
+                    alt={`${title} temple`}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover/card:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#E8742C] to-[#F4B400] flex items-center justify-center text-white text-5xl">
+                    <span aria-hidden="true">🛕</span>
+                  </div>
+                )}
 
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -77,7 +88,7 @@ export default function TempleRail({ temples }) {
                 {/* Badges */}
                 <div className="absolute top-3 left-3">
                   <span className="px-2.5 py-1 bg-saffron text-white text-[9px] font-bold rounded-full uppercase tracking-wider">
-                    {temple.deity}
+                    {temple.deity || 'Sacred'}
                   </span>
                 </div>
 
@@ -100,23 +111,26 @@ export default function TempleRail({ temples }) {
                 {/* Content */}
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <h4 className="text-white text-sm font-bold leading-snug line-clamp-2 mb-2">
-                    {temple.name}
+                    {title}
                   </h4>
                   <div className="flex items-center gap-3 text-white/70 text-[10px]">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {temple.location}
-                    </span>
+                    {temple.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {temple.location}
+                      </span>
+                    )}
                     <span className="flex items-center gap-1">
                       <Star className="w-3 h-3 text-gold" />
-                      {temple.rating}
+                      {temple.views || 0}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
           </Link>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

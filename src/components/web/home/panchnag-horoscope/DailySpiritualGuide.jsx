@@ -6,25 +6,24 @@ import { GiLotus } from 'react-icons/gi';
 import PanchangSection from './PanchangSection';
 import HoroscopeSection from './HoroscopeSection';
 import DailyWisdom from './DailyWisdom';
-import { mockPanchang, mockHoroscope, zodiacSigns } from '@/lib/mockAstroData';
 import { getPanchangForHomepage } from '@/lib/services/panchangService';
-import { getAllHoroscopes } from '@/lib/services/horoscopeService';
+import { getAllHoroscopes, zodiacSigns } from '@/lib/services/horoscopeService';
 import { getDailyContent } from '@/lib/services/dailyContentService';
 
-const normalizePanchangData = (data, fallback = mockPanchang) => ({
-  date: data?.date || fallback.date || new Date().toISOString().split('T')[0],
-  tithi: data?.tithi || fallback.tithi || '—',
-  tithiDetails: data?.tithiDetails || fallback.tithiDetails || '',
-  nakshatra: data?.nakshatra || fallback.nakshatra || '—',
-  nakshatraDetails: data?.nakshatraDetails || fallback.nakshatraDetails || '',
-  sunrise: data?.sunrise || fallback.sunrise || '—',
-  sunset: data?.sunset || fallback.sunset || '—',
-  rahuKaal: data?.rahuKaal || fallback.rahuKaal || '—',
-  abhijitMuhurat: data?.abhijitMuhurat || fallback.abhijitMuhurat || '—',
-  specialEvent: data?.specialEvent || data?.festivals?.[0]?.festival_name || fallback.specialEvent || '',
+const normalizePanchangData = (data = {}) => ({
+  date: data?.date || new Date().toISOString().split('T')[0],
+  tithi: data?.tithi || '—',
+  tithiDetails: data?.tithiDetails || '',
+  nakshatra: data?.nakshatra || '—',
+  nakshatraDetails: data?.nakshatraDetails || '',
+  sunrise: data?.sunrise || '—',
+  sunset: data?.sunset || '—',
+  rahuKaal: data?.rahuKaal || '—',
+  abhijitMuhurat: data?.abhijitMuhurat || '—',
+  specialEvent: data?.specialEvent || data?.festivals?.[0]?.festival_name || '',
 });
 
-const normalizeHoroscopeData = (horoscopes = {}, fallback = mockHoroscope) => {
+const normalizeHoroscopeData = (horoscopes = {}) => {
   const normalized = {};
 
   zodiacSigns.forEach((sign) => {
@@ -32,14 +31,14 @@ const normalizeHoroscopeData = (horoscopes = {}, fallback = mockHoroscope) => {
     normalized[sign.id] = source
       ? {
           ...source,
-          prediction: source.prediction || fallback?.[sign.id]?.prediction || 'Stay grounded and trust your intuition today.',
-          color: source.luckyColor || source.color || fallback?.[sign.id]?.color || '#D98C1F',
-          luckyNumber: source.luckyNumber || source.number || fallback?.[sign.id]?.luckyNumber || '—',
-          mood: source.mood || fallback?.[sign.id]?.mood || 'Balanced',
-          compatibility: source.compatibility || fallback?.[sign.id]?.compatibility || '—',
+          prediction: source.prediction || 'Take a moment to pause and reflect on today’s energy.',
+          color: source.luckyColor || source.color || '#D98C1F',
+          luckyNumber: source.luckyNumber || source.number || '—',
+          mood: source.mood || 'Balanced',
+          compatibility: source.compatibility || '—',
         }
-      : fallback?.[sign.id] || {
-          prediction: 'Stay grounded and trust your intuition today.',
+      : {
+          prediction: 'Take a moment to pause and reflect on today’s energy.',
           color: '#D98C1F',
           luckyNumber: '—',
           mood: 'Balanced',
@@ -66,8 +65,8 @@ const normalizeDailyWisdom = (data) => {
 };
 
 export default function DailySpiritualGuide() {
-  const [panchangData, setPanchangData] = useState(mockPanchang);
-  const [horoscopeData, setHoroscopeData] = useState(mockHoroscope);
+  const [panchangData, setPanchangData] = useState(null);
+  const [horoscopeData, setHoroscopeData] = useState({});
   const [quoteData, setQuoteData] = useState(null);
   const [mantra, setMantra] = useState('ॐ नमः शिवाय');
   const [language, setLanguage] = useState('en');
@@ -84,10 +83,14 @@ export default function DailySpiritualGuide() {
 
         if (panchangResult.success && panchangResult.panchang) {
           setPanchangData(normalizePanchangData(panchangResult.panchang));
+        } else {
+          setPanchangData(normalizePanchangData({}));
         }
 
         if (horoscopeResult.success && horoscopeResult.horoscopes) {
-          setHoroscopeData(normalizeHoroscopeData(horoscopeResult.horoscopes, mockHoroscope));
+          setHoroscopeData(normalizeHoroscopeData(horoscopeResult.horoscopes));
+        } else {
+          setHoroscopeData(normalizeHoroscopeData({}));
         }
 
         if (dailyContentResult.success) {
@@ -95,6 +98,8 @@ export default function DailySpiritualGuide() {
           const mantraData = dailyContentResult.data?.mantra;
           setQuoteData(normalizeDailyWisdom(wisdomData));
           setMantra((mantraData?.text || mantraData?.mantra || 'ॐ नमः शिवाय').trim() || 'ॐ नमः शिवाय');
+        } else {
+          setQuoteData(null);
         }
       } catch (error) {
         console.error('Error loading spiritual guide data:', error);

@@ -5,10 +5,21 @@ import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { GiLotus } from 'react-icons/gi';
 import WisdomCard from './WisdomCard';
-import { getTodaysWisdom, wisdomQuotes } from '@/lib/mockWisdomData';
 
 const buildWisdomQuote = (source) => {
-  if (!source) return getTodaysWisdom();
+  if (!source) {
+    return {
+      id: 'daily-wisdom',
+      quote: 'Let today be guided by calm awareness and sincere effort.',
+      author: 'Aarambh',
+      category: 'Wisdom',
+      color: '#D98C1F',
+      bgGradient: 'from-[#FFF6E5] via-[#FFFAF0] to-[#FDECC8]',
+      borderColor: 'border-[#F4B400]/30',
+      tags: ['Wisdom', 'Spirituality'],
+      source: 'Daily Content',
+    };
+  }
 
   return {
     id: source.id || 'daily-wisdom',
@@ -32,9 +43,9 @@ export default function DailyWisdom({ quoteData = null }) {
   }, [quoteData]);
 
   const handleRefresh = () => {
-    const pool = wisdomQuotes.filter((q) => q.id !== currentQuote?.id);
-    const next = pool[Math.floor(Math.random() * pool.length)];
-    if (next) setCurrentQuote(next);
+    if (currentQuote) {
+      setCurrentQuote((prev) => (prev ? { ...prev } : prev));
+    }
   };
 
   const handleLike = (quoteId) => {
@@ -69,7 +80,7 @@ export default function DailyWisdom({ quoteData = null }) {
             isLiked={isLiked}
             onLike={handleLike}
             onRefresh={handleRefresh}
-            showRefresh={true}
+            showRefresh={false}
             showShare={true}
             compact={true}
             className="h-full"

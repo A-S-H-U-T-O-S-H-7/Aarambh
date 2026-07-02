@@ -1,3 +1,4 @@
+// components/web/home/video/VideoPlayerModal.jsx
 'use client';
 
 import { useEffect } from 'react';
@@ -45,39 +46,24 @@ const formatNumber = (num) => {
 const getYoutubeEmbedUrl = (url) => {
   if (!url) return null;
   
-  // If it's already an embed URL, return as is
   if (url.includes('/embed/')) return url;
   
-  // Extract video ID from various YouTube URL formats
   let videoId = null;
-  
-  // youtube.com/watch?v=XXXXX
   if (url.includes('watch?v=')) {
     const match = url.match(/[?&]v=([^&]+)/);
     if (match) videoId = match[1];
-  }
-  // youtu.be/XXXXX
-  else if (url.includes('youtu.be/')) {
+  } else if (url.includes('youtu.be/')) {
     const match = url.match(/youtu\.be\/([^?]+)/);
     if (match) videoId = match[1];
-  }
-  // youtube.com/embed/XXXXX
-  else if (url.includes('/embed/')) {
+  } else if (url.includes('/embed/')) {
     const match = url.match(/\/embed\/([^?]+)/);
     if (match) videoId = match[1];
-  }
-  // youtube.com/shorts/XXXXX
-  else if (url.includes('/shorts/')) {
+  } else if (url.includes('/shorts/')) {
     const match = url.match(/\/shorts\/([^?]+)/);
     if (match) videoId = match[1];
   }
   
-  if (videoId) {
-    return `https://www.youtube.com/embed/${videoId}`;
-  }
-  
-  // If no match, return original URL (might already be embed)
-  return url;
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
 };
 
 export default function VideoPlayerModal({
@@ -91,7 +77,6 @@ export default function VideoPlayerModal({
   isPlaying,
   onPlay,
 }) {
-  // ESC to close + lock scroll
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -105,14 +90,13 @@ export default function VideoPlayerModal({
 
   if (!video) return null;
 
-  const videoEmbedUrl = getYoutubeEmbedUrl(video.videoUrl);
+  const videoEmbedUrl = getYoutubeEmbedUrl(video.youtubeUrl);
   const hasVideo = !!videoEmbedUrl;
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -122,7 +106,6 @@ export default function VideoPlayerModal({
             onClick={onClose}
           />
 
-          {/* Modal container - same as BhajanPlayerModal */}
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.93, y: 28 }}
@@ -132,10 +115,8 @@ export default function VideoPlayerModal({
               className="relative w-full max-w-2xl bg-white dark:bg-brown-900 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Gradient accent bar */}
               <div className={`h-1 w-full bg-gradient-to-r ${getCategoryGradient(video.category)}`} />
 
-              {/* Close button */}
               <button
                 onClick={onClose}
                 className="absolute top-3 right-3 z-20 p-2 rounded-full bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 transition-colors"
@@ -143,9 +124,7 @@ export default function VideoPlayerModal({
                 <FaTimes className="w-3.5 h-3.5 text-brown-800 dark:text-cream-50" />
               </button>
 
-              {/* ── Video / Cover area ── */}
               {hasVideo ? (
-                /* Full-width 16/9 video embed */
                 <div className="relative w-full aspect-video bg-black">
                   <iframe
                     key={videoEmbedUrl}
@@ -157,7 +136,6 @@ export default function VideoPlayerModal({
                   />
                 </div>
               ) : (
-                /* Cover art placeholder with play overlay */
                 <div className={`relative w-full aspect-video bg-gradient-to-br ${getCategoryGradient(video.category)} flex items-center justify-center`}>
                   <span className="text-8xl opacity-40 select-none">
                     {getCategoryEmoji(video.category)}
@@ -177,9 +155,7 @@ export default function VideoPlayerModal({
                 </div>
               )}
 
-              {/* ── Info + controls ── */}
               <div className="px-5 py-4 md:px-6 md:py-5">
-                {/* Category + title */}
                 <div className="flex items-start gap-3 mb-3">
                   <div className="flex-1 min-w-0">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20 mb-2 capitalize">
@@ -195,7 +171,6 @@ export default function VideoPlayerModal({
                   </div>
                 </div>
 
-                {/* Stats */}
                 <div className="flex items-center gap-4 text-xs text-brown-400 dark:text-cream-50/40 mb-4">
                   <span className="flex items-center gap-1">
                     <FaEye className="w-3 h-3" />
@@ -211,16 +186,13 @@ export default function VideoPlayerModal({
                   </span>
                 </div>
 
-                {/* Description */}
                 {video.description && (
                   <p className="text-xs text-brown-600 dark:text-cream-50/60 leading-relaxed mb-4 line-clamp-2">
                     {video.description}
                   </p>
                 )}
 
-                {/* Controls row */}
                 <div className="flex items-center justify-between pt-3 border-t border-gold/10">
-                  {/* Prev / Next */}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={onPrev}
@@ -238,7 +210,6 @@ export default function VideoPlayerModal({
                     </button>
                   </div>
 
-                  {/* Like */}
                   <button
                     onClick={() => onLike?.(video.id)}
                     className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold/20 hover:border-divine-red/30 hover:bg-divine-red/5 transition-all text-sm font-medium text-brown-700 dark:text-cream-50/80"

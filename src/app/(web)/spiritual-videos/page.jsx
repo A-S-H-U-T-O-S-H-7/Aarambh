@@ -1,7 +1,7 @@
 // app/(web)/spiritual-videos/page.jsx
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,12 +22,11 @@ import { GiLotus } from 'react-icons/gi';
 import VideoCard from '@/components/web/home/spiritual-videos/VideoCard';
 import VideoPlayerModal from '@/components/web/home/spiritual-videos/VideoPlayerModal';
 import {
-  videoCategories,
-  getCategoryVideos,
-  videos,
+  getVideos,
   getTrendingVideos,
-  formatViews,
-} from '@/lib/mockVideoData';
+  incrementVideoView,
+  toggleVideoLike,
+} from '@/lib/services/mediaService';
 
 // ─── CategoryTabs ──────────────────────────────────────────────────────────────
 
@@ -121,24 +120,45 @@ function StickyNowPlaying({ video, isPlaying, onOpen, onToggle, onNext, onPrev, 
 
 export default function SpiritualVideosPage() {
   const router = useRouter();
+  const [allVideos, setAllVideos] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [playingId, setPlayingId] = useState(null);
   const [likedVideos, setLikedVideos] = useState([]);
   const [modalVideo, setModalVideo] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Category counts
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        setLoading(true);
+        const result = await getVideos(60, 'standard');
+        if (result.success) {
+          setAllVideos(result.videos || []);
+        }
+      } catch (error) {
+        console.error('Error fetching spiritual videos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVideos();
+  }, []);
+
   const categoryCounts = useMemo(() => {
-    const counts = { all: videos.length };
-    videos.forEach((v) => {
+    const counts = { all: allVideos.length };
+    allVideos.forEach((v) => {
       counts[v.category] = (counts[v.category] || 0) + 1;
     });
     return counts;
-  }, []);
+  }, [allVideos]);
 
-  // Filtered list
   const filteredVideos = useMemo(() => {
-    let results = getCategoryVideos(activeCategory);
+    let results = allVideos;
+    if (activeCategory !== 'all') {
+      results = results.filter((video) => video.category === activeCategory);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       results = results.filter(
@@ -149,12 +169,16 @@ export default function SpiritualVideosPage() {
       );
     }
     return results;
-  }, [activeCategory, searchQuery]);
+  }, [allVideos, activeCategory, searchQuery]);
 
-  // Modal handlers
-  const handleOpenModal = useCallback((video) => {
+  const handleOpenModal = useCallback(async (video) => {
     setModalVideo(video);
     setPlayingId(video.id);
+    try {
+      await incrementVideoView(video.id);
+    } catch (error) {
+      console.error('Error incrementing video view:', error);
+    }
   }, []);
 
   const handleCloseModal = useCallback(() => {
@@ -175,10 +199,15 @@ export default function SpiritualVideosPage() {
     if (prev) { setModalVideo(prev); setPlayingId(prev.id); }
   }, [playingId, filteredVideos]);
 
-  const handleLike = useCallback((id) => {
+  const handleLike = useCallback(async (id) => {
     setLikedVideos((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
+    try {
+      await toggleVideoLike(id);
+    } catch (error) {
+      console.error('Error toggling video like:', error);
+    }
   }, []);
 
   const handleTogglePlay = useCallback(() => {
@@ -187,17 +216,20 @@ export default function SpiritualVideosPage() {
   }, [modalVideo]);
 
   const isLiked = (id) => likedVideos.includes(id);
-  const nowPlaying = playingId ? videos.find((v) => v.id === playingId) : null;
+  const nowPlaying = playingId ? allVideos.find((v) => v.id === playingId) : null;
 
-  // Deduplicate categories
   const allCategories = useMemo(() => {
     const seen = new Set();
-    return [{ id: 'all', name: 'All', icon: '🎬' }, ...videoCategories].filter((c) => {
-      if (seen.has(c.id)) return false;
-      seen.add(c.id);
-      return true;
+    const categories = [{ id: 'all', name: 'All', icon: '🎬' }];
+    allVideos.forEach((video) => {
+      const categoryId = video.category || 'general';
+      if (!seen.has(categoryId)) {
+        seen.add(categoryId);
+        categories.push({ id: categoryId, name: categoryId.charAt(0).toUpperCase() + categoryId.slice(1), icon: '🎥' });
+      }
     });
-  }, []);
+    return categories;
+  }, [allVideos]);
 
   // Handle back navigation
   const handleBack = () => {
@@ -212,7 +244,7 @@ export default function SpiritualVideosPage() {
         <div className="absolute bottom-0 -left-20 w-[400px] h-[400px] bg-gradient-radial from-orange-200/30 to-transparent rounded-full blur-3xl dark:from-saffron/5" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="relative z-10 max-w-8xl mx-auto px-4 sm:px-6 lg:px-14 py-6 lg:py-8">
 
         {/* ── Back Button ── */}
         <motion.div
@@ -298,62 +330,70 @@ export default function SpiritualVideosPage() {
           />
         </motion.div>
 
-        {/* ── Results meta ── */}
-        <div className="flex items-center justify-between mb-5 text-sm">
-          <span className="text-brown-500 dark:text-cream-50/50">
-            {filteredVideos.length} video{filteredVideos.length !== 1 ? 's' : ''}
-            {searchQuery ? ` for "${searchQuery}"` : ''}
-          </span>
-          {activeCategory !== 'all' && (
-            <button
-              onClick={() => { setActiveCategory('all'); setSearchQuery(''); }}
-              className="text-xs text-gold hover:text-saffron font-medium transition-colors flex items-center gap-1"
-            >
-              <FaTimes className="w-3 h-3" /> Clear filter
-            </button>
-          )}
-        </div>
-
-        {/* ── Grid ── */}
-        {filteredVideos.length > 0 ? (
-          <motion.div
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
-          >
-            <AnimatePresence>
-              {filteredVideos.map((video) => (
-                <VideoCard
-                  key={video.id}
-                  video={video}
-                  isPlaying={playingId === video.id}
-                  onPlay={() => handleOpenModal(video)}
-                  onLike={handleLike}
-                  isLiked={isLiked(video.id)}
-                  onClick={handleOpenModal}
-                />
-              ))}
-            </AnimatePresence>
-          </motion.div>
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-20"
-          >
-            <p className="text-5xl mb-4">🎬</p>
-            <h3 className="text-lg font-semibold text-brown-800 dark:text-cream-50 mb-1">
-              No videos found
-            </h3>
-            <p className="text-sm text-brown-500 dark:text-cream-50/50 mb-5">
-              Try a different search term or category
-            </p>
-            <button
-              onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
-              className="px-6 py-2.5 bg-gradient-to-r from-saffron to-gold text-white text-sm font-semibold rounded-full hover:shadow-lg hover:shadow-gold/30 transition-all"
-            >
-              Reset filters
-            </button>
-          </motion.div>
+          <>
+            {/* ── Results meta ── */}
+            <div className="flex items-center justify-between mb-5 text-sm">
+              <span className="text-brown-500 dark:text-cream-50/50">
+                {filteredVideos.length} video{filteredVideos.length !== 1 ? 's' : ''}
+                {searchQuery ? ` for "${searchQuery}"` : ''}
+              </span>
+              {activeCategory !== 'all' && (
+                <button
+                  onClick={() => { setActiveCategory('all'); setSearchQuery(''); }}
+                  className="text-xs text-gold hover:text-saffron font-medium transition-colors flex items-center gap-1"
+                >
+                  <FaTimes className="w-3 h-3" /> Clear filter
+                </button>
+              )}
+            </div>
+
+            {/* ── Grid ── */}
+            {filteredVideos.length > 0 ? (
+              <motion.div
+                layout
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
+              >
+                <AnimatePresence>
+                  {filteredVideos.map((video) => (
+                    <VideoCard
+                      key={video.id}
+                      video={video}
+                      isPlaying={playingId === video.id}
+                      onPlay={() => handleOpenModal(video)}
+                      onLike={handleLike}
+                      isLiked={isLiked(video.id)}
+                      onClick={handleOpenModal}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-20"
+              >
+                <p className="text-5xl mb-4">🎬</p>
+                <h3 className="text-lg font-semibold text-brown-800 dark:text-cream-50 mb-1">
+                  No videos found
+                </h3>
+                <p className="text-sm text-brown-500 dark:text-cream-50/50 mb-5">
+                  Try a different search term or category
+                </p>
+                <button
+                  onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
+                  className="px-6 py-2.5 bg-gradient-to-r from-saffron to-gold text-white text-sm font-semibold rounded-full hover:shadow-lg hover:shadow-gold/30 transition-all"
+                >
+                  Reset filters
+                </button>
+              </motion.div>
+            )}
+          </>
         )}
       </div>
 

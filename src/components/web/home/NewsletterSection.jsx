@@ -6,58 +6,59 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
   Mail, 
-  Send, 
   CheckCircle, 
   AlertCircle, 
   Bell,
   Sparkles,
-  Heart,
-  Om
+  Heart
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-
-// Placeholder - replace with actual subscription service
-const subscribeUser = async (email, name, userId) => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  return { success: true, message: 'Successfully subscribed to the newsletter!' };
-};
-
-const getSubscriptionStatus = async (userId, email) => {
-  return { success: true, isSubscribed: false };
-};
-
-// Placeholder auth store - replace with your actual auth store
-const useAuthStore = () => {
-  return { user: null, isAuthenticated: false };
-};
+import { subscribeUser, getSubscriptionStatus } from '@/lib/services/subscriptionService';
+import useAuthStore from '@/lib/store/useAuthStore';
 
 export default function NewsletterSection() {
   const router = useRouter();
+  const { user, isAuthenticated, loading: authLoading } = useAuthStore();
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
   const [alreadySubscribed, setAlreadySubscribed] = useState(false);
-  const { user, isAuthenticated } = useAuthStore();
+  const [isChecking, setIsChecking] = useState(true);
 
+  // Check subscription status when auth state changes
   useEffect(() => {
     const checkSubscription = async () => {
+      if (authLoading) return;
+      
+      setIsChecking(true);
+      
       if (isAuthenticated && user?.email) {
-        const result = await getSubscriptionStatus(user?.uid, user?.email);
-        if (result.success && result.isSubscribed) {
-          setAlreadySubscribed(true);
+        try {
+          const result = await getSubscriptionStatus(user?.uid, user?.email);
+          if (result.success && result.isSubscribed) {
+            setAlreadySubscribed(true);
+          }
+        } catch (error) {
+          console.error('Error checking subscription:', error);
         }
+        setEmail(user.email || '');
+      } else {
+        setAlreadySubscribed(false);
+        setEmail('');
       }
+      
+      setIsChecking(false);
     };
+    
     checkSubscription();
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, authLoading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // If user is not logged in, redirect to signup page
-    if (!isAuthenticated) {
+    const { isAuthenticated: freshAuth, user: freshUser } = useAuthStore.getState();
+    
+    if (!freshAuth || !freshUser) {
       toast.error('Please sign up to subscribe to our newsletter');
       router.push('/signup?redirect=newsletter');
       return;
@@ -79,16 +80,15 @@ export default function NewsletterSection() {
 
     setStatus('loading');
     
-    const subscriberName = isAuthenticated ? user?.name : (name || null);
-    const userId = isAuthenticated ? user?.uid : null;
+    const subscriberName = freshUser?.displayName || null;
+    const userId = freshUser?.uid || null;
     
     const result = await subscribeUser(email, subscriberName, userId);
     
     if (result.success) {
       setStatus('success');
       setMessage(result.message);
-      setEmail('');
-      setName('');
+      setAlreadySubscribed(true);
       toast.success(result.message);
       setTimeout(() => { setStatus('idle'); setMessage(''); }, 3000);
     } else {
@@ -98,6 +98,22 @@ export default function NewsletterSection() {
       setTimeout(() => { setStatus('idle'); setMessage(''); }, 3000);
     }
   };
+
+  if (authLoading || isChecking) {
+    return (
+      <section className="py-8 md:py-12 lg:py-16 relative overflow-hidden bg-gradient-to-b from-cream-50/50 via-white to-cream-50/50 dark:from-brown-900/20 dark:via-brown-900 dark:to-brown-900/20">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-10">
+          <div className="rounded-2xl border border-gold/20 dark:border-gold/10 bg-white dark:bg-brown-800/80 backdrop-blur-sm shadow-xl overflow-hidden">
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-4 border-saffron border-t-transparent rounded-full animate-spin" />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const isLoggedIn = isAuthenticated && user;
 
   return (
     <section className="py-8 md:py-12 lg:py-16 relative overflow-hidden bg-gradient-to-b from-cream-50/50 via-white to-cream-50/50 dark:from-brown-900/20 dark:via-brown-900 dark:to-brown-900/20">
@@ -118,19 +134,16 @@ export default function NewsletterSection() {
         >
           <div className="flex flex-col lg:flex-row items-stretch">
 
-            {/* Left — Text block with Saffron tint + decorative bubbles */}
+            {/* Left — Text block */}
             <div className="relative flex items-center gap-5 px-6 md:px-8 py-10 bg-gradient-to-br from-saffron/10 via-gold/5 to-cream-50 dark:from-saffron/20 dark:via-gold/10 dark:to-brown-900/50 lg:w-[46%] flex-shrink-0 overflow-hidden">
-              {/* Decorative bubbles */}
               <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full bg-saffron/20 dark:bg-saffron/10 pointer-events-none" />
               <div className="absolute -bottom-6 right-12 w-20 h-20 rounded-full bg-gold/20 dark:bg-gold/10 pointer-events-none" />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-gold/5 dark:bg-gold/5 pointer-events-none" />
               
-              {/* Floating Om Symbol */}
               <div className="absolute bottom-8 left-8 text-6xl text-gold/5 font-serif pointer-events-none">
                 ॐ
               </div>
 
-              {/* Icon */}
               <div className="relative z-10 flex-shrink-0">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-r from-saffron to-gold flex items-center justify-center shadow-lg shadow-gold/20">
                   {alreadySubscribed ? (
@@ -141,7 +154,6 @@ export default function NewsletterSection() {
                 </div>
               </div>
 
-              {/* Text */}
               <div className="relative z-10">
                 <h3 className="text-xl font-bold text-brown-900 dark:text-cream-50 leading-snug">
                   {alreadySubscribed ? "✨ You're already a subscriber!" : "Stay connected with divine wisdom."}
@@ -152,13 +164,22 @@ export default function NewsletterSection() {
                     : "Subscribe to our newsletter and receive daily spiritual wisdom, festival updates, and divine insights."
                   }
                 </p>
-                {!isAuthenticated && !alreadySubscribed && (
+                {!isLoggedIn && !alreadySubscribed && (
                   <p className="text-xs text-brown-500 dark:text-cream-50/50 mt-2">
-                    Already have an account?{' '}
+                    Please{' '}
                     <a href="/login" className="text-saffron hover:text-gold transition-colors font-medium">
-                      Sign in
+                      Login
                     </a>{' '}
-                    for auto-filled details.
+                    or{' '}
+                    <a href="/signup" className="text-saffron hover:text-gold transition-colors font-medium">
+                      Sign Up
+                    </a>{' '}
+                    to subscribe
+                  </p>
+                )}
+                {isLoggedIn && !alreadySubscribed && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                    ✅ Logged in as <span className="font-medium">{user?.email}</span>
                   </p>
                 )}
               </div>
@@ -172,29 +193,24 @@ export default function NewsletterSection() {
             <div className="flex items-center px-6 md:px-8 py-10 flex-1 bg-white dark:bg-brown-900/50">
               {!alreadySubscribed ? (
                 <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full">
-                  {!isAuthenticated && (
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Your name (optional)"
-                      className="w-full px-4 py-3 rounded-lg text-sm bg-cream-50 dark:bg-brown-900/50 border border-gold/20 dark:border-gold/10 text-brown-900 dark:text-cream-50 placeholder-brown-400 dark:placeholder-cream-50/40 focus:outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20 transition-colors"
-                    />
-                  )}
                   <div className="flex flex-col sm:flex-row gap-2.5">
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder={isAuthenticated ? "Confirm your email" : "Enter your email address"}
+                      placeholder={isLoggedIn ? "Confirm your email" : "Enter your email address"}
                       disabled={status === "loading"}
                       required
-                      className="flex-1 px-4 py-3 rounded-lg text-sm bg-cream-50 dark:bg-brown-900/50 border border-gold/20 dark:border-gold/10 text-brown-900 dark:text-cream-50 placeholder-brown-400 dark:placeholder-cream-50/40 focus:outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20 transition-colors min-w-0"
+                      className="flex-1 px-4 py-3 rounded-lg text-sm bg-cream-50 dark:bg-brown-900/50 border border-gold/20 dark:border-gold/10 text-brown-900 dark:text-cream-50 placeholder-brown-400 dark:placeholder-cream-50/40 focus:outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20 transition-colors disabled:opacity-60"
                     />
                     <button
                       type="submit"
-                      disabled={status === "loading"}
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-saffron to-gold hover:shadow-lg hover:shadow-gold/30 active:scale-95 text-white text-sm font-semibold rounded-lg transition-all disabled:opacity-50 whitespace-nowrap"
+                      disabled={status === "loading" || !isLoggedIn}
+                      className={`inline-flex items-center justify-center gap-2 px-6 py-3 text-white text-sm font-semibold rounded-lg transition-all disabled:opacity-50 whitespace-nowrap ${
+                        isLoggedIn
+                          ? 'bg-gradient-to-r from-saffron to-gold hover:shadow-lg hover:shadow-gold/30 active:scale-95'
+                          : 'bg-gray-400 cursor-not-allowed'
+                      }`}
                     >
                       {status === "loading" ? (
                         <>
@@ -209,11 +225,18 @@ export default function NewsletterSection() {
                       ) : (
                         <>
                           <Sparkles className="w-4 h-4" />
-                          Subscribe Now
+                          {isLoggedIn ? 'Subscribe Now' : 'Login to Subscribe'}
                         </>
                       )}
                     </button>
                   </div>
+
+                  {!isLoggedIn && (
+                    <p className="text-xs text-brown-500 dark:text-cream-50/50">
+                      Please <a href="/login" className="text-saffron hover:text-gold transition-colors font-medium">login</a> or{' '}
+                      <a href="/signup" className="text-saffron hover:text-gold transition-colors font-medium">sign up</a> to subscribe
+                    </p>
+                  )}
 
                   {message && (
                     <p className={`text-xs flex items-center gap-1.5 ${
