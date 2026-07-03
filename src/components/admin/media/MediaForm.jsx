@@ -1,7 +1,7 @@
 // components/admin/media/MediaForm.jsx
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   Video, 
   Music, 
@@ -25,9 +25,16 @@ const generateSlug = (title) => {
     .replace(/^-+|-+$/g, '');
 };
 
+const parseTags = (value) =>
+  value
+    .split(/[,\s]+/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
 export default function MediaForm({ formData, errors, onInputChange, isDark, categories = [], loadingCategories = false }) {
-  const [tagsInput, setTagsInput] = useState(formData.tags?.join(', ') || '');
+  const [tagsInput, setTagsInput] = useState('');
   const [mediaType, setMediaType] = useState(formData.mediaType || 'video');
+  const tagsSyncedRef = useRef(false);
 
   const handleTitleChange = (value) => {
     onInputChange("title", value);
@@ -44,8 +51,7 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
   const handleTagsChange = (e) => {
     const value = e.target.value;
     setTagsInput(value);
-    const tagsArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
-    onInputChange("tags", tagsArray);
+    onInputChange("tags", parseTags(value));
   };
 
   const handleMediaTypeChange = (type) => {
@@ -54,8 +60,9 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
   };
 
   useEffect(() => {
-    if (formData.tags && Array.isArray(formData.tags)) {
+    if (!tagsSyncedRef.current && formData.tags?.length > 0) {
       setTagsInput(formData.tags.join(', '));
+      tagsSyncedRef.current = true;
     }
   }, [formData.tags]);
 
@@ -286,13 +293,13 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
 
         <div>
           <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            Tags (comma separated)
+            Tags (comma or space separated)
           </label>
           <input
             type="text"
             value={tagsInput}
             onChange={handleTagsChange}
-            placeholder="spiritual, meditation, devotion, bhajan"
+            placeholder="spiritual, meditation devotion bhajan"
             className={`w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 ${
               isDark
                 ? "bg-gray-900 border-gray-700 text-gray-100 focus:border-yellow-500 placeholder-gray-500"
@@ -300,7 +307,7 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
             } border-2 focus:outline-none focus:ring-2 focus:ring-yellow-400/20`}
           />
           <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            Enter tags separated by commas (e.g., spiritual, meditation, devotion)
+            Enter tags separated by commas or spaces (e.g., spiritual, meditation devotion)
           </p>
           {formData.tags && formData.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">

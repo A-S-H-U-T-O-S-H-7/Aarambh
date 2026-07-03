@@ -73,12 +73,10 @@ export default function DailyManagementPage() {
       else if (type === 'mantra') setMantra(data);
       else if (type === 'wisdom') setWisdom(data);
       else if (type === 'song') {
-        // Update song with new audio URL if returned
-        if (result.audioUrl) {
-          setSong({ ...data, url: result.audioUrl });
-        } else {
-          setSong(data);
-        }
+        const updatedSong = result.audioUrl
+          ? { ...data, url: result.audioUrl }
+          : data;
+        setSong(updatedSong);
       }
 
       await log({

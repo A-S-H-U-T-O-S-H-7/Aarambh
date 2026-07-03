@@ -40,6 +40,7 @@ const DEFAULT_VALUES = {
   mantra: 'ॐ नमः शिवाय',
   mantraTranslation: 'I bow to Lord Shiva',
   songUrl: '/music.mpeg',
+  songAutoPlay: true,
 };
 
 const resolveHeroContent = (heroData = {}, mantraData = {}, songData = {}) => {
@@ -67,6 +68,7 @@ const resolveHeroContent = (heroData = {}, mantraData = {}, songData = {}) => {
     mantra: mantraData.text?.trim() || DEFAULT_VALUES.mantra,
     mantraTranslation: mantraData.translation?.trim() || DEFAULT_VALUES.mantraTranslation,
     songUrl: songData.url?.trim() || songData.songUrl?.trim() || DEFAULT_VALUES.songUrl,
+    songAutoPlay: songData.isPlaying !== undefined ? songData.isPlaying : DEFAULT_VALUES.songAutoPlay,
   };
 };
 
@@ -141,6 +143,8 @@ export default function HeroSection() {
 
   // Auto-play on load (with user interaction requirement)
   useEffect(() => {
+    if (!content.songAutoPlay) return;
+
     const playAudio = () => {
       if (audioRef.current && !isPlaying && content.songUrl) {
         audioRef.current.play().catch(() => {});
@@ -150,7 +154,7 @@ export default function HeroSection() {
     };
     document.addEventListener('click', playAudio);
     return () => document.removeEventListener('click', playAudio);
-  }, [content.songUrl]);
+  }, [content.songUrl, content.songAutoPlay]);
 
   // ============ PARTICLE CANVAS EFFECT ============
   useEffect(() => {
@@ -283,20 +287,19 @@ export default function HeroSection() {
       style={{ height: isMobile ? 'clamp(520px, 75vh, 600px)' : 'clamp(480px, 68vh, 680px)' }}
     >
       {/* ── Hidden Audio Player ── */}
-      {/* ── Hidden Audio Player ── */}
 <audio
+  key={songUrl}
   ref={audioRef}
   src={songUrl}
   loop
   preload="auto"
   onLoadedData={() => {
     setIsLoaded(true);
-    console.log('✅ Audio loaded successfully');
+    setIsPlaying(false);
   }}
   onError={(e) => {
-    console.log('❌ Audio load error, using fallback');
-    // If the Firebase URL fails, try using the default fallback
-    if (e.target.src !== '/music.mpeg') {
+    console.error('Audio load error:', songUrl);
+    if (e.target.src !== window.location.origin + '/music.mpeg' && !e.target.src.endsWith('/music.mpeg')) {
       e.target.src = '/music.mpeg';
     }
   }}

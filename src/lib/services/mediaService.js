@@ -59,13 +59,23 @@ const normalizeVideoType = (videoType) => {
   return ['standard', 'short', 'reel'].includes(normalized) ? normalized : 'standard';
 };
 
+const stripHtmlTags = (html) => {
+  if (!html) return '';
+  return html
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 const mapVideoDocument = (doc) => {
   const data = doc.data();
   return {
     id: doc.id,
     title: data.title || '',
     slug: data.slug || '',
-    description: data.description || '',
+    description: stripHtmlTags(data.description || ''),
     category: data.category || '',
     thumbnail: data.thumbnail || '',
     youtubeUrl: data.youtubeUrl || '',
@@ -735,7 +745,7 @@ export const getVideoById = async (videoId) => {
         id: mediaSnap.id,
         title: data.title || '',
         slug: data.slug || '',
-        description: data.description || '',
+        description: stripHtmlTags(data.description || ''),
         category: data.category || '',
         thumbnail: data.thumbnail || '',
         youtubeUrl: data.youtubeUrl || '',

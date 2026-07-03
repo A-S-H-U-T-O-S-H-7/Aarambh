@@ -1,91 +1,139 @@
 // app/api/astro/fetch/route.js
 import { NextResponse } from 'next/server';
+import { FieldValue } from 'firebase-admin/firestore';
 import { db } from '@/lib/firebase/firebase-admin';
-import { fetchAllPanchangData, fetchAllHoroscopes } from '@/lib/astro/vedicApi';
+import { fetchAllPanchangData, fetchAllHoroscopes, LOCATIONS } from '@/lib/astro/vedicApi';
+import { zodiacSigns } from '@/lib/services/horoscopeService';
 
-const SECRET_KEY = process.env.CRON_SECRET_KEY || 'your-secret-key';
-const LOCATIONS = {
-  delhi: { lat: '28.6139', lon: '77.2090' },
-  varanasi: { lat: '25.3176', lon: '82.9739' },
-  // Add more as needed
-};
+const CRON_SECRET = process.env.CRON_SECRET || process.env.CRON_SECRET_KEY;
 
-export async function POST(request) {
+const DEFAULT_LOCATION = 'delhi';
+const DEFAULT_LANG = 'en';
+
+function getTodayIST() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
+
+function isAuthorized(request) {
+  if (!CRON_SECRET) return true;
+  const authHeader = request.headers.get('authorization');
+  return authHeader === `Bearer ${CRON_SECRET}`;
+}
+
+async function updateDailyAstroData(date, location = DEFAULT_LOCATION, lang = DEFAULT_LANG) {
+  const locData = LOCATIONS[location] || LOCATIONS.delhi;
+
+  const panchangResult = await fetchAllPanchangData(date, location, lang);
+  if (!panchangResult.success) {
+    throw new Error('Failed to fetch panchang data from API');
+  }
+
+  await db.collection('panchang').doc(date).set({
+    date,
+    location,
+    locationLat: locData.lat,
+    locationLon: locData.lon,
+    locationTz: locData.tz,
+    month: panchangResult.month || '',
+    samvat: panchangResult.samvat || '',
+    tithi: panchangResult.tithi || '',
+    tithiDetails: panchangResult.tithiDetails || '',
+    nakshatra: panchangResult.nakshatra || '',
+    nakshatraDetails: panchangResult.nakshatraDetails || '',
+    yoga: panchangResult.yoga || '',
+    karana: panchangResult.karana || '',
+    festivals: panchangResult.festivals,
+    yogas: panchangResult.yogas,
+    sunrise: panchangResult.sunrise,
+    sunset: panchangResult.sunset,
+    rahuKaal: panchangResult.rahuKaal || '',
+    abhijitMuhurat: panchangResult.abhijitMuhurat || '',
+    amritKaal: panchangResult.amritKaal || '',
+    specialEvent: panchangResult.specialEvent || '',
+    choghadiya: panchangResult.choghadiya,
+    hora: panchangResult.hora,
+    source: 'vedicastro',
+    isManualOverride: false,
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedBy: null,
+  }, { merge: true });
+
+  const apiResults = await fetchAllHoroscopes(lang, date);
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const sign of zodiacSigns) {
+    const apiData = apiResults[sign.id];
+    if (apiData?.prediction) {
+      await db.collection('horoscopes').doc(`${sign.id}_${date}`).set({
+        sign: sign.id,
+        date,
+        prediction: apiData.prediction,
+        luckyColor: apiData.luckyColor,
+        luckyNumber: apiData.luckyNumber,
+        luckyTime: apiData.luckyTime || '',
+        mood: apiData.mood || '',
+        compatibility: apiData.compatibility || '',
+        source: 'vedicastro',
+        isManualOverride: false,
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: null,
+      }, { merge: true });
+      successCount++;
+    } else {
+      failCount++;
+    }
+  }
+
+  return { successCount, failCount };
+}
+
+async function handleCronRequest(request) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    // Verify the request is authorized
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${SECRET_KEY}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    let date = getTodayIST();
+    let location = DEFAULT_LOCATION;
+    let lang = DEFAULT_LANG;
+
+    if (request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      date = body.date || date;
+      location = body.location || location;
+      lang = body.lang || lang;
     }
 
-    const { location = 'delhi', date = new Date().toISOString().split('T')[0] } = await request.json();
+    console.log(`Fetching astro data for ${date} (${location}, ${lang})...`);
 
-    console.log(`🔄 Fetching astro data for ${date} at ${location}...`);
+    const { successCount, failCount } = await updateDailyAstroData(date, location, lang);
 
-    // Fetch Panchang
-    const panchangData = await fetchAllPanchangData(date, location, 'en');
-
-    // Fetch Horoscopes for all languages
-    const languages = ['en', 'hi'];
-    const horoscopeData = {};
-
-    for (const lang of languages) {
-      horoscopeData[lang] = await fetchAllHoroscopes(lang);
-    }
-
-    // Prepare data for Firestore
-    const dailyData = {
-      date,
-      location,
-      updatedAt: new Date().toISOString(),
-      panchang: panchangData,
-      horoscope: horoscopeData,
-      languages: languages,
-    };
-
-    // Save to Firestore
-    const docRef = db.collection('dailyAstroData').doc(date);
-    await docRef.set(dailyData, { merge: true });
-
-    console.log(`✅ Data saved successfully for ${date}`);
+    console.log(`Astro data saved for ${date} (${successCount} horoscopes, ${failCount} failed)`);
 
     return NextResponse.json({
       success: true,
-      message: `Data fetched and saved for ${date}`,
-      data: dailyData,
+      message: `Panchang and horoscopes updated for ${date}`,
+      date,
+      location,
+      lang,
+      horoscopesUpdated: successCount,
+      horoscopesFailed: failCount,
     });
-
   } catch (error) {
-    console.error('❌ Error fetching astro data:', error);
+    console.error('Error in astro cron:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch astro data', details: error.message },
+      { error: 'Failed to update astro data', details: error.message },
       { status: 500 }
     );
   }
 }
 
-// GET endpoint to check stored data
+// Vercel Cron invokes this path via GET
 export async function GET(request) {
-  try {
-    const url = new URL(request.url);
-    const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+  return handleCronRequest(request);
+}
 
-    const doc = await db.collection('dailyAstroData').doc(date).get();
-
-    if (!doc.exists) {
-      return NextResponse.json({ error: 'No data found for this date' }, { status: 404 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: doc.data(),
-    });
-
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch data' },
-      { status: 500 }
-    );
-  }
+export async function POST(request) {
+  return handleCronRequest(request);
 }

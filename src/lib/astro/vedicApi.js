@@ -19,37 +19,6 @@ export const zodiacNumbers = {
   pisces: 12,
 };
 
-// Nakshatra mappings
-export const nakshatraList = [
-  { id: 1, name: 'Ashwini' },
-  { id: 2, name: 'Bharani' },
-  { id: 3, name: 'Krittika' },
-  { id: 4, name: 'Rohini' },
-  { id: 5, name: 'Mrigashira' },
-  { id: 6, name: 'Ardra' },
-  { id: 7, name: 'Punarvasu' },
-  { id: 8, name: 'Pushya' },
-  { id: 9, name: 'Ashlesha' },
-  { id: 10, name: 'Magha' },
-  { id: 11, name: 'Purvaphalguni' },
-  { id: 12, name: 'Uttaraphalguni' },
-  { id: 13, name: 'Hasta' },
-  { id: 14, name: 'Chitra' },
-  { id: 15, name: 'Swati' },
-  { id: 16, name: 'Vishakha' },
-  { id: 17, name: 'Anuradha' },
-  { id: 18, name: 'Jyeshtha' },
-  { id: 19, name: 'Mula' },
-  { id: 20, name: 'Purvashadha' },
-  { id: 21, name: 'Uttarashadha' },
-  { id: 22, name: 'Sravana' },
-  { id: 23, name: 'Dhanista' },
-  { id: 24, name: 'Shatabhisha' },
-  { id: 25, name: 'Purvabhadra' },
-  { id: 26, name: 'Uttarabhadra' },
-  { id: 27, name: 'Revati' },
-];
-
 // Supported languages
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -527,72 +496,6 @@ export const fetchHoraMuhurta = async (date = null, lat = '28.6139', lon = '77.2
     console.error('fetchHoraMuhurta error:', error.message);
     return { horas: [], dayOfWeek: '' };
   }
-};
-
-// ==================== NAKSHATRA API ====================
-
-// Fetch daily nakshatra
-export const fetchNakshatra = async (nakshatraId, lang = 'en', date = null) => {
-  try {
-    if (!cleanApiKey) {
-      return getMockNakshatra(nakshatraId);
-    }
-
-    const params = new URLSearchParams({
-      api_key: cleanApiKey,
-      date: formatApiDate(date),
-      nakshatra: String(nakshatraId),
-      lang: lang || 'en',
-    });
-
-    const endpoint = `${BASE_URL}/daily-nakshatra?${params.toString()}`;
-    const response = await fetch(endpoint, { cache: 'no-store' });
-    if (!response.ok) return getMockNakshatra(nakshatraId);
-
-    const data = await response.json();
-    if (data.status === 200 && data.response) {
-      return parseNakshatraResponse(data);
-    }
-    return getMockNakshatra(nakshatraId);
-  } catch (error) {
-    console.error('fetchNakshatra error:', error.message);
-    return getMockNakshatra(nakshatraId);
-  }
-};
-
-const parseNakshatraResponse = (data) => {
-  const response = data.response || {};
-  const botResponse = response.bot_response || {};
-
-  let prediction = '';
-  const sections = ['total_score', 'status', 'finances', 'relationship', 'career', 'health'];
-  for (const key of sections) {
-    if (botResponse[key]?.split_response) {
-      prediction += botResponse[key].split_response + ' ';
-    }
-  }
-
-  return {
-    prediction: prediction.trim() || response.prediction || '',
-    luckyColor: response.lucky_color || '',
-    luckyColorCode: response.lucky_color_code || '',
-    luckyNumber: Array.isArray(response.lucky_number) 
-      ? response.lucky_number.join(', ') 
-      : response.lucky_number || '',
-    nakshatra: response.nakshatra || '',
-    source: 'vedicastro',
-  };
-};
-
-const getMockNakshatra = (id) => {
-  const nakshatra = nakshatraList.find(n => n.id === id);
-  return {
-    prediction: `Today brings positive energy for ${nakshatra?.name || 'this nakshatra'}. Stay focused on your goals and trust your intuition.`,
-    luckyColor: 'Red',
-    luckyNumber: '7',
-    nakshatra: nakshatra?.name || '',
-    source: 'fallback',
-  };
 };
 
 // ==================== UTILITY FUNCTIONS ====================

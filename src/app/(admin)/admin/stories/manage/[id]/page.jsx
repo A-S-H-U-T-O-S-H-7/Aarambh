@@ -54,10 +54,10 @@ export default function ManageStoryPage() {
     metadesc: '',
     metakeywords: '',
     manualSlug: false,
+    imageFiles: [],
+    existingImages: [],
   });
 
-  const [imageFiles, setImageFiles] = useState([]);
-  const [existingImages, setExistingImages] = useState([]);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(isEditMode);
@@ -88,8 +88,9 @@ export default function ManageStoryPage() {
               metadesc: story.metadesc || '',
               metakeywords: story.metakeywords || '',
               manualSlug: true,
+              imageFiles: [],
+              existingImages: story.images || [],
             });
-            setExistingImages(story.images || []);
             setOldStoryData(story);
           } else {
             toast.error("Story not found");
@@ -151,7 +152,7 @@ export default function ManageStoryPage() {
 
       let result;
       if (isEditMode) {
-        result = await updateStory(storyId, storyData, imageFiles, existingImages);
+        result = await updateStory(storyId, storyData, formData.imageFiles, formData.existingImages);
         if (result.success) {
           await log({
             action: 'UPDATE',
@@ -164,7 +165,7 @@ export default function ManageStoryPage() {
           });
         }
       } else {
-        result = await createStory(storyData, imageFiles);
+        result = await createStory(storyData, formData.imageFiles);
         if (result.success) {
           await log({
             action: 'CREATE',
@@ -241,7 +242,7 @@ export default function ManageStoryPage() {
             onSubmit={handleSubmit}
             isLoading={isLoading}
             isDark={isDark}
-            existingImages={existingImages}
+            existingImages={formData.existingImages}
           />
         </div>
       </div>

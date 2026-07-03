@@ -12,8 +12,7 @@ import {
 import { getRecentActivities } from "./activityLogService"; 
 
 const COLLECTIONS = {
-  bhajans: "bhajans",
-  videos: "videos",
+  media: "media",
   stories: "stories",
   temples: "temples",
   festivals: "festivals",
@@ -52,9 +51,14 @@ const countCollection = async (collectionName, filters = []) => {
 
 const toDate = (value) => value?.toDate?.() || value || null;
 
-const getRecentFromCollection = async (collectionName, mapItem, maxItems = 5) => {
+const getRecentFromCollection = async (collectionName, mapItem, maxItems = 5, filters = []) => {
   try {
-    const recentQuery = query(collection(db, collectionName), orderBy("createdAt", "desc"), limit(maxItems));
+    const recentQuery = query(
+      collection(db, collectionName),
+      ...filters,
+      orderBy("createdAt", "desc"),
+      limit(maxItems)
+    );
     const snapshot = await getDocs(recentQuery);
     return snapshot.docs.map((doc) => mapItem(doc.id, doc.data()));
   } catch {
@@ -84,10 +88,16 @@ export const getDashboardData = async () => {
       recentMessages,
       recentActivities,
     ] = await Promise.all([
-      countCollection(COLLECTIONS.bhajans),
-      countCollection(COLLECTIONS.bhajans, [where("status", "==", "published")]),
-      countCollection(COLLECTIONS.videos),
-      countCollection(COLLECTIONS.videos, [where("status", "==", "published")]),
+      countCollection(COLLECTIONS.media, [where("mediaType", "==", "bhajan")]),
+      countCollection(COLLECTIONS.media, [
+        where("mediaType", "==", "bhajan"),
+        where("status", "==", "published"),
+      ]),
+      countCollection(COLLECTIONS.media, [where("mediaType", "==", "video")]),
+      countCollection(COLLECTIONS.media, [
+        where("mediaType", "==", "video"),
+        where("status", "==", "published"),
+      ]),
       countCollection(COLLECTIONS.stories),
       countCollection(COLLECTIONS.stories, [where("status", "==", "published")]),
       countCollection(COLLECTIONS.temples),
@@ -96,20 +106,30 @@ export const getDashboardData = async () => {
       countCollection(COLLECTIONS.users, [where("status", "==", "active")]),
       countCollection(COLLECTIONS.subscribers, [where("status", "==", "active")]),
       countCollection(COLLECTIONS.contacts, [where("status", "==", "unread")]),
-      getRecentFromCollection(COLLECTIONS.bhajans, (id, data) => ({
-        id,
-        type: "Bhajan",
-        title: data.title || "Untitled bhajan",
-        status: data.status || "draft",
-        date: toDate(data.createdAt),
-      })),
-      getRecentFromCollection(COLLECTIONS.videos, (id, data) => ({
-        id,
-        type: "Video",
-        title: data.title || "Untitled video",
-        status: data.status || "draft",
-        date: toDate(data.createdAt),
-      })),
+      getRecentFromCollection(
+        COLLECTIONS.media,
+        (id, data) => ({
+          id,
+          type: "Bhajan",
+          title: data.title || "Untitled bhajan",
+          status: data.status || "draft",
+          date: toDate(data.createdAt),
+        }),
+        5,
+        [where("mediaType", "==", "bhajan")]
+      ),
+      getRecentFromCollection(
+        COLLECTIONS.media,
+        (id, data) => ({
+          id,
+          type: "Video",
+          title: data.title || "Untitled video",
+          status: data.status || "draft",
+          date: toDate(data.createdAt),
+        }),
+        5,
+        [where("mediaType", "==", "video")]
+      ),
       getRecentFromCollection(COLLECTIONS.stories, (id, data) => ({
         id,
         type: "Story",

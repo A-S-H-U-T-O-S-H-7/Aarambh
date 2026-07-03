@@ -1,15 +1,13 @@
 // components/admin/astro/AstroLayout.jsx
 'use client';
 
-import { Calendar, Sparkles, Moon } from "lucide-react";
+import { Calendar, Sparkles } from "lucide-react";
 import AstroPanchang from "./AstroPanchang";
 import AstroHoroscope from "./AstroHoroscope";
-import AstroNakshatra from "./AstroNakshatra";
 
 const TABS = [
   { id: 'panchang', label: '📅 Panchang', icon: Calendar },
   { id: 'horoscope', label: '⭐ Horoscope', icon: Sparkles },
-  { id: 'nakshatra', label: '🌙 Nakshatra', icon: Moon },
 ];
 
 export default function AstroLayout({
@@ -34,11 +32,6 @@ export default function AstroLayout({
   onSaveHoroscope,
   onFetchHoroscopes,
   getHoroscopeForSign,
-  // Nakshatra props
-  selectedNakshatra,
-  setSelectedNakshatra,
-  nakshatraData,
-  onFetchNakshatra,
   // Other
   selectedDate,
   location,
@@ -105,19 +98,6 @@ export default function AstroLayout({
             onSave={onSaveHoroscope}
             onFetch={onFetchHoroscopes}
             getHoroscopeForSign={getHoroscopeForSign}
-            updating={updating}
-            isDark={isDark}
-            selectedDate={selectedDate}
-            language={language}
-          />
-        )}
-
-        {activeTab === 'nakshatra' && (
-          <AstroNakshatra
-            selectedNakshatra={selectedNakshatra}
-            setSelectedNakshatra={setSelectedNakshatra}
-            nakshatraData={nakshatraData}
-            onFetch={onFetchNakshatra}
             updating={updating}
             isDark={isDark}
             selectedDate={selectedDate}

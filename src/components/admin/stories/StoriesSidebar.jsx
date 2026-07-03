@@ -13,8 +13,7 @@ export default function StoriesSidebar({
   isDark,
   existingImages = []
 }) {
-  const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState(existingImages || []);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const fileInputRef = useRef(null);
 
   const handleImageUpload = (e) => {
@@ -34,26 +33,30 @@ export default function StoriesSidebar({
 
     if (validFiles.length === 0) return;
 
-    setImageFiles(prev => [...prev, ...validFiles]);
+    const updatedFiles = [...(formData.imageFiles || []), ...validFiles];
+    onInputChange('imageFiles', updatedFiles);
     
     const newPreviews = validFiles.map(file => URL.createObjectURL(file));
     setImagePreviews(prev => [...prev, ...newPreviews]);
-    
-    onInputChange('imageFiles', [...imageFiles, ...validFiles]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const removeImage = (index) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
-    
-    const updatedFiles = imageFiles.filter((_, i) => i !== index);
+    const updatedFiles = (formData.imageFiles || []).filter((_, i) => i !== index);
     onInputChange('imageFiles', updatedFiles);
+    setImagePreviews(prev => {
+      const removed = prev[index];
+      if (removed?.startsWith('blob:')) URL.revokeObjectURL(removed);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const removeExistingImage = (imageUrl) => {
     const updatedImages = existingImages.filter(url => url !== imageUrl);
     onInputChange('existingImages', updatedImages);
-    setImagePreviews(prev => prev.filter(url => url !== imageUrl));
   };
 
   const getButtonText = () => {

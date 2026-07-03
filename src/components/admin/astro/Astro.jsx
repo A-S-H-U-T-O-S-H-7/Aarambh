@@ -21,8 +21,6 @@ import {
   updateHoroscopeManually 
 } from "@/lib/services/horoscopeService";
 import { 
-  fetchNakshatra,
-  nakshatraList,
   SUPPORTED_LANGUAGES,
   LOCATIONS
 } from "@/lib/astro/vedicApi";
@@ -52,10 +50,6 @@ export default function AstroManagementPage() {
   const [editingSign, setEditingSign] = useState(null);
   const [editHoroscopeData, setEditHoroscopeData] = useState({});
   
-  // Nakshatra state
-  const [selectedNakshatra, setSelectedNakshatra] = useState(1);
-  const [nakshatraData, setNakshatraData] = useState(null);
-  
   // Stats
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -82,18 +76,13 @@ export default function AstroManagementPage() {
         }
       }
 
-      // Fetch Nakshatra
-      const nakshatraResult = await fetchNakshatra(selectedNakshatra, language, selectedDate);
-      if (nakshatraResult) {
-        setNakshatraData(nakshatraResult);
-      }
     } catch (error) {
       console.error("Error fetching astro data:", error);
       toast.error("Failed to fetch data");
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, selectedNakshatra, language]);
+  }, [selectedDate, language]);
 
   useEffect(() => {
     fetchAllData();
@@ -189,25 +178,6 @@ export default function AstroManagementPage() {
     }
   };
 
-  // ============ NAKSHATRA FUNCTIONS ============
-  const handleFetchNakshatra = async () => {
-    setUpdating(true);
-    try {
-      const result = await fetchNakshatra(selectedNakshatra, language, selectedDate);
-      if (result) {
-        setNakshatraData(result);
-        toast.success("Nakshatra data updated!");
-      } else {
-        toast.error("Failed to fetch nakshatra data");
-      }
-    } catch (error) {
-      console.error("Error fetching nakshatra:", error);
-      toast.error("Failed to fetch nakshatra");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
   // ============ UI HELPERS ============
   const formatDateDisplay = (date) => {
     if (!date) return 'Never';
@@ -256,7 +226,7 @@ export default function AstroManagementPage() {
               🪐 Astro Management
             </h1>
             <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"} mt-1`}>
-              Manage Panchang, Horoscope and Nakshatra
+              Manage Panchang and Horoscope
             </p>
           </div>
         </div>
@@ -358,10 +328,6 @@ export default function AstroManagementPage() {
         onSaveHoroscope={handleSaveHoroscope}
         onFetchHoroscopes={handleFetchHoroscopes}
         getHoroscopeForSign={getHoroscopeForSign}
-        selectedNakshatra={selectedNakshatra}
-        setSelectedNakshatra={setSelectedNakshatra}
-        nakshatraData={nakshatraData}
-        onFetchNakshatra={handleFetchNakshatra}
         selectedDate={selectedDate}
         location={location}
         language={language}

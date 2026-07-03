@@ -5,6 +5,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage
 
 const COLLECTION = "dailyContent";
 const STORAGE_PATH = "daily-content/hero";
+const SONG_STORAGE_PATH = "daily-content/songs";
 
 // Upload image to Firebase Storage
 const uploadHeroImage = async (file, type) => {
@@ -33,6 +34,35 @@ const deleteHeroImage = async (imageUrl) => {
     await deleteObject(storageRef);
   } catch (error) {
     console.error('Error deleting image:', error);
+  }
+};
+
+// Upload audio file to Firebase Storage
+const uploadSongAudio = async (file) => {
+  if (!file) return null;
+
+  try {
+    const timestamp = Date.now();
+    const extension = (file.name || 'mp3').split('.').pop().toLowerCase();
+    const fileName = `song_${timestamp}.${extension}`;
+    const storageRef = ref(storage, `${SONG_STORAGE_PATH}/${fileName}`);
+
+    const uploadResult = await uploadBytes(storageRef, file);
+    return getDownloadURL(uploadResult.ref);
+  } catch (error) {
+    console.error('Error uploading song audio:', error);
+    throw error;
+  }
+};
+
+// Delete audio from Firebase Storage
+const deleteSongAudio = async (audioUrl) => {
+  if (!audioUrl || !audioUrl.includes('firebasestorage.googleapis.com')) return;
+  try {
+    const storageRef = ref(storage, audioUrl);
+    await deleteObject(storageRef);
+  } catch (error) {
+    console.error('Error deleting song audio:', error);
   }
 };
 
@@ -142,19 +172,32 @@ export const saveWisdom = async (data) => {
 };
 
 // Save/Update song
-export const saveSong = async (data) => {
+export const saveSong = async (data, audioFile = null) => {
   try {
+    let audioUrl = data.url || data.songUrl || '';
+
+    if (audioFile) {
+      if (data.oldAudioUrl) {
+        await deleteSongAudio(data.oldAudioUrl);
+      }
+      audioUrl = await uploadSongAudio(audioFile);
+    }
+
+    if (!audioUrl?.trim()) {
+      return { success: false, error: 'Please upload an audio file or enter a URL' };
+    }
+
     const songData = {
       title: data.title || '',
       artist: data.artist || '',
-      url: data.url || data.songUrl || '',  
+      url: audioUrl,
       isPlaying: data.isPlaying !== undefined ? data.isPlaying : true,
       festival: data.festival || '',
       updatedAt: new Date().toISOString(),
     };
-    
+
     await setDoc(doc(db, COLLECTION, "song"), songData);
-    return { success: true };
+    return { success: true, audioUrl };
   } catch (error) {
     console.error('Error saving song:', error);
     return { success: false, error: error.message };
