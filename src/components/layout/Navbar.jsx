@@ -1,6 +1,7 @@
+// components/layout/Navbar.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -19,7 +20,7 @@ import {
   Info,
   UserCircle,
   LogOut,
-  Settings,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTheme } from '@/hooks/useTheme';
@@ -28,12 +29,14 @@ import useAuthStore from '@/lib/store/useAuthStore';
 const Navbar = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark } = useTheme();
   const { user, isAuthenticated, logout, loading } = useAuthStore();
 
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef(null);
 
   // Handle scroll effect
   useEffect(() => {
@@ -67,6 +70,18 @@ const Navbar = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showUserDropdown]);
 
+  // Handle search submit
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim().length >= 2) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+      setIsOpen(false);
+    } else {
+      toast.error('Please enter at least 2 characters to search');
+    }
+  };
+
   const navLinks = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Bhajans', href: '/bhajans', icon: Music },
@@ -74,7 +89,6 @@ const Navbar = () => {
     { name: 'Festivals', href: '/festivals', icon: Calendar },
     { name: 'Temples', href: '/temples', icon: Building },
     { name: 'Stories', href: '/stories', icon: BookOpen },
-    { name: 'Blogs', href: '/blogs', icon: BookOpen },
     { name: 'About', href: '/about', icon: Info },
   ];
 
@@ -87,13 +101,14 @@ const Navbar = () => {
     router.push('/');
   };
 
+  const getUserAvatar = () => {
+    if (user?.photoURL) return user.photoURL;
+    return null;
+  };
+
   const getUserInitial = () => {
-    if (user?.displayName) {
-      return user.displayName.charAt(0).toUpperCase();
-    }
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
+    if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (user?.email) return user.email.charAt(0).toUpperCase();
     return 'U';
   };
 
@@ -104,6 +119,8 @@ const Navbar = () => {
   const getUserEmail = () => {
     return user?.email || '';
   };
+
+  const userAvatar = getUserAvatar();
 
   return (
     <nav
@@ -116,17 +133,15 @@ const Navbar = () => {
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center group">
-            <div className="relative w-25 h-10 md:w-50 md:h-13 mr-2">
-              <Image
-                src="/aarambhlogo.png"
-                alt="Aarambh TV"
-                width={140}
-                height={110}
-                className="object-contain group-hover:scale-110 transition-transform duration-300"
-                priority
-              />
-            </div>
+          <Link href="/" className="flex items-center group flex-shrink-0">
+            <Image
+              src="/aarambhlogo.png"
+              alt="Aarambh TV"
+              width={140}
+              height={110}
+              className="object-contain group-hover:scale-105 transition-transform duration-300"
+              priority
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -148,15 +163,27 @@ const Navbar = () => {
 
           {/* Right Side - Search, Dark Mode, Auth */}
           <div className="flex items-center space-x-2">
-            {/* Search */}
-            <div className="hidden md:flex items-center relative">
+            {/* Search - Desktop */}
+            <form
+              onSubmit={handleSearchSubmit}
+              className="hidden md:flex items-center relative"
+            >
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search spiritual content..."
-                className="w-48 lg:w-64 pl-9 pr-4 py-1.5 text-sm bg-white/50 dark:bg-brown-800/50 backdrop-blur-sm border border-gold/20 dark:border-gold/10 rounded-full focus:outline-none focus:border-saffron dark:focus:border-saffron transition-colors placeholder:text-brown-600/60 dark:placeholder:text-cream-50/40"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-48 lg:w-64 pl-9 pr-10 py-1.5 text-sm bg-white/50 dark:bg-brown-800/50 backdrop-blur-sm border border-gold/20 dark:border-gold/10 rounded-full focus:outline-none focus:border-saffron dark:focus:border-saffron transition-colors placeholder:text-brown-600/60 dark:placeholder:text-cream-50/40"
               />
               <Search className="absolute left-3 w-4 h-4 text-brown-600 dark:text-cream-50/60" />
-            </div>
+              <button
+                type="submit"
+                className="absolute cursor-pointer right-1.5 px-2.5 py-0.5 bg-gradient-to-r from-saffron to-gold text-white text-xs font-medium rounded-full hover:shadow-lg transition-all"
+              >
+                Search
+              </button>
+            </form>
 
             {/* Dark Mode Toggle */}
             <button
@@ -174,18 +201,29 @@ const Navbar = () => {
             {/* Auth Button / User Profile */}
             <div className="relative user-dropdown">
               {!loading && isAuthenticated ? (
-                // User Avatar with Dropdown
                 <button
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
-                  className="flex cursor-pointer items-center space-x-2 p-1.5 rounded-full hover:bg-saffron/10 dark:hover:bg-saffron/20 transition-colors"
+                  className="flex cursor-pointer items-center gap-1.5 p-1 rounded-full hover:bg-saffron/10 dark:hover:bg-saffron/20 transition-colors border-2 border-gold/30 dark:border-gold/20"
                   aria-label="User menu"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-divine flex items-center justify-center text-white font-semibold text-sm">
-                    {getUserInitial()}
-                  </div>
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt={getUserName()}
+                      className="w-7 h-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-gradient-divine flex items-center justify-center text-white font-semibold text-sm">
+                      {getUserInitial()}
+                    </div>
+                  )}
+                  <ChevronDown
+                    className={`w-4 h-4 text-brown-600 dark:text-cream-50/60 transition-transform duration-200 ${
+                      showUserDropdown ? 'rotate-180' : ''
+                    }`}
+                  />
                 </button>
               ) : (
-                // Sign Up Button
                 <Link
                   href="/signup"
                   className="px-4 py-1.5 text-sm font-semibold text-white bg-gradient-divine rounded-full hover:shadow-lg hover:shadow-saffron/30 transition-all transform hover:scale-105"
@@ -205,12 +243,11 @@ const Navbar = () => {
                       {getUserEmail()}
                     </p>
                   </div>
-                  
-                  
-                  <div className="border-t  border-gold/10 dark:border-gold/20 my-1" />
+
+                  <div className="border-t border-gold/10 dark:border-gold/20 my-1" />
                   <button
                     onClick={handleLogout}
-                    className="flex items-center cursor-pointer space-x-3 px-4 py-2.5 text-sm text-divine-red hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full"
+                    className="flex cursor-pointer items-center space-x-3 px-4 py-2.5 text-sm text-divine-red hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>
@@ -239,15 +276,23 @@ const Navbar = () => {
       {isOpen && (
         <div className="lg:hidden bg-cream-50/95 dark:bg-brown-900/95 backdrop-blur-md border-t border-gold/10 dark:border-gold/20 shadow-xl">
           <div className="px-4 py-3 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto">
-            {/* Mobile Search */}
-            <div className="relative mb-3">
+            {/* Mobile Search - With Button */}
+            <form onSubmit={handleSearchSubmit} className="relative mb-3">
               <input
                 type="text"
                 placeholder="Search..."
-                className="w-full pl-9 pr-4 py-2 text-sm bg-white/50 dark:bg-brown-800/50 backdrop-blur-sm border border-gold/20 dark:border-gold/10 rounded-lg focus:outline-none focus:border-saffron"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-20 py-2 text-sm bg-white/50 dark:bg-brown-800/50 backdrop-blur-sm border border-gold/20 dark:border-gold/10 rounded-lg focus:outline-none focus:border-saffron"
               />
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-brown-600 dark:text-cream-50/60" />
-            </div>
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1.5 px-3 py-1 text-xs font-medium text-white bg-gradient-to-r from-saffron to-gold rounded-md hover:shadow-lg transition-all"
+              >
+                Search
+              </button>
+            </form>
 
             {navLinks.map((link) => {
               const active = isActive(link.href);
@@ -275,9 +320,17 @@ const Navbar = () => {
             <div className="pt-3 mt-3 border-t border-gold/10 dark:border-gold/20">
               {!loading && isAuthenticated ? (
                 <div className="flex items-center space-x-3 px-3 py-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-divine flex items-center justify-center text-white font-semibold text-sm">
-                    {getUserInitial()}
-                  </div>
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt={getUserName()}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-divine flex items-center justify-center text-white font-semibold text-sm">
+                      {getUserInitial()}
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm font-semibold text-brown-900 dark:text-cream-50">
                       {getUserName()}

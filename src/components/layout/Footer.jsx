@@ -18,24 +18,59 @@ import {
   FaTwitter, 
   FaInstagram, 
   FaYoutube, 
-  FaLinkedinIn,
   FaWhatsapp,
   FaTelegram
 } from 'react-icons/fa';
+import { getPublicSettings } from '@/lib/services/settingsService';
+
+// Default values as fallback
+const DEFAULT_CONTACT = {
+  phone1: '+91 99999 99999',
+  phone2: '',
+  contactEmail: 'info@aarambhtv.com',
+  address: 'Mumbai, India',
+};
+
+const DEFAULT_SOCIAL = {
+  facebook: '#',
+  twitter: '#',
+  instagram: '#',
+  youtube: '#',
+  whatsapp: '#',
+  telegram: '#',
+};
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [contact, setContact] = useState(DEFAULT_CONTACT);
+  const [social, setSocial] = useState(DEFAULT_SOCIAL);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const result = await getPublicSettings();
+        if (result.success && result.data) {
+          setContact(result.data.contact || DEFAULT_CONTACT);
+          setSocial(result.data.social || DEFAULT_SOCIAL);
+        }
+      } catch (error) {
+        console.error('Error fetching footer settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // Quick Links
   const quickLinks = [
     { name: 'Home', href: '/' },
     { name: 'Bhajans', href: '/bhajans' },
     { name: 'Spiritual Videos', href: '/spiritual-videos' },
-    { name: 'Horoscope', href: '/horoscope' },
+    { name: 'Stories', href: '/stories' },
     { name: 'Temples', href: '/temples' },
     { name: 'Festivals', href: '/festivals' },
-    { name: 'Stories', href: '/stories' },
-    { name: 'Blogs', href: '/blogs' },
   ];
 
   // Support Links
@@ -48,23 +83,38 @@ export default function Footer() {
     { name: 'Advertise With Us', href: '/advertise-with-us' },
   ];
 
-  // Social Media Links
+  // Social Media Links - with dynamic URLs from settings
   const socialLinks = [
-    { icon: FaFacebookF, href: '#', label: 'Facebook' },
-    { icon: FaTwitter, href: '#', label: 'Twitter' },
-    { icon: FaInstagram, href: '#', label: 'Instagram' },
-    { icon: FaYoutube, href: '#', label: 'YouTube' },
-    { icon: FaWhatsapp, href: '#', label: 'WhatsApp' },
+    { icon: FaFacebookF, href: social.facebook || '#', label: 'Facebook' },
+    { icon: FaTwitter, href: social.twitter || '#', label: 'Twitter' },
+    { icon: FaInstagram, href: social.instagram || '#', label: 'Instagram' },
+    { icon: FaYoutube, href: social.youtube || '#', label: 'YouTube' },
+    { icon: FaWhatsapp, href: social.whatsapp || '#', label: 'WhatsApp' },
+    { icon: FaTelegram, href: social.telegram || '#', label: 'Telegram' },
   ];
+
+  if (loading) {
+    return (
+      <footer className="w-full">
+        <div className="bg-gradient-to-br from-brown-900 via-brown-800 to-saffron/90 border-t border-gold/20 text-cream-50">
+          <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+            <div className="flex justify-center items-center">
+              <div className="w-8 h-8 border-3 border-gold border-t-transparent rounded-full animate-spin" />
+            </div>
+          </div>
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <footer className="w-full">
       {/* Main Footer Section - Gradient from Brown to Saffron/Gold */}
       <div className="bg-gradient-to-br from-brown-900 via-brown-800 to-saffron/90 border-t border-gold/20 text-cream-50">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-8">
           
-          {/* Desktop: 5 columns */}
-          <div className="hidden lg:grid lg:grid-cols-5 gap-8">
+          {/* Desktop: 4 columns */}
+          <div className="hidden lg:grid lg:grid-cols-4 gap-8">
             {/* Column 1 - Logo, Description & Social */}
             <div className="lg:col-span-1">
               <div className="flex items-center gap-3 mb-4">
@@ -77,13 +127,6 @@ export default function Footer() {
                     className="object-contain w-40 h-12"
                     priority
                   />
-                  {/* <div>
-                    <span className="text-2xl font-bold">
-                      <span className="text-saffron">Aarambh</span>
-                      <span className="text-gold">TV</span>
-                    </span>
-                    <p className="text-[10px] text-cream-50/40 uppercase tracking-wider">Spiritual Media</p>
-                  </div> */}
                 </Link>
               </div>
               
@@ -93,18 +136,22 @@ export default function Footer() {
               </p>
               
               <div className="flex flex-wrap gap-2">
-                {socialLinks.map((social, index) => (
-                  <a
-                    key={index}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 rounded-full bg-cream-50/5 border border-gold/20 flex items-center justify-center hover:bg-gold/20 hover:border-gold/40 transition-all duration-300 group"
-                    aria-label={social.label}
-                  >
-                    <social.icon className="w-4 h-4 text-cream-50/60 group-hover:text-gold transition-colors" />
-                  </a>
-                ))}
+                {socialLinks.map((social, index) => {
+                  // Only show if href is not empty and not '#'
+                  if (!social.href || social.href === '#') return null;
+                  return (
+                    <a
+                      key={index}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-9 h-9 rounded-full bg-cream-50/5 border border-gold/20 flex items-center justify-center hover:bg-gold/20 hover:border-gold/40 transition-all duration-300 group"
+                      aria-label={social.label}
+                    >
+                      <social.icon className="w-4 h-4 text-cream-50/60 group-hover:text-gold transition-colors" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
 
@@ -114,7 +161,7 @@ export default function Footer() {
                 Quick Links
               </h4>
               <ul className="space-y-2">
-                {quickLinks.slice(0, 6).map((link) => (
+                {quickLinks.map((link) => (
                   <li key={link.name}>
                     <Link 
                       href={link.href} 
@@ -128,27 +175,7 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Column 3 - More Links */}
-            <div>
-              <h4 className="text-lg font-semibold text-gold mb-4 pb-1 border-b border-gold/20 inline-block">
-                Explore More
-              </h4>
-              <ul className="space-y-2">
-                {quickLinks.slice(6).map((link) => (
-                  <li key={link.name}>
-                    <Link 
-                      href={link.href} 
-                      className="text-cream-50/70 hover:text-gold transition-colors text-sm flex items-center gap-1 group"
-                    >
-                      <ChevronRight className="w-3 h-3 text-gold/30 group-hover:text-gold transition-colors" />
-                      {link.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Column 4 - Support */}
+            {/* Column 3 - Support */}
             <div>
               <h4 className="text-lg font-semibold text-gold mb-4 pb-1 border-b border-gold/20 inline-block">
                 Support
@@ -168,45 +195,41 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Column 5 - Quick Contact */}
+            {/* Column 4 - Quick Contact (Dynamic from settings) */}
             <div>
               <h4 className="text-lg font-semibold text-gold mb-4 pb-1 border-b border-gold/20 inline-block">
                 Get in Touch
               </h4>
               <div className="space-y-3">
                 <a 
-                  href="mailto:info@aarambhtv.com" 
+                  href={`mailto:${contact.contactEmail}`} 
                   className="flex items-start gap-3 text-cream-50/70 hover:text-gold transition-colors text-sm group"
                 >
                   <Mail className="w-4 h-4 text-gold flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                  <span>info@aarambhtv.com</span>
+                  <span>{contact.contactEmail}</span>
                 </a>
                 <a 
-                  href="tel:+919999999999" 
+                  href={`tel:${contact.phone1.replace(/\s/g, '')}`} 
                   className="flex items-center gap-3 text-cream-50/70 hover:text-gold transition-colors text-sm group"
                 >
                   <Phone className="w-4 h-4 text-gold flex-shrink-0 group-hover:scale-110 transition-transform" />
-                  <span>+91 99999 99999</span>
+                  <span>{contact.phone1}</span>
                 </a>
+                {contact.phone2 && (
+                  <a 
+                    href={`tel:${contact.phone2.replace(/\s/g, '')}`} 
+                    className="flex items-center gap-3 text-cream-50/70 hover:text-gold transition-colors text-sm group"
+                  >
+                    <Phone className="w-4 h-4 text-gold flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <span>{contact.phone2}</span>
+                  </a>
+                )}
                 <div className="flex items-start gap-3 text-cream-50/70 text-sm">
                   <MapPin className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" />
-                  <span>Mumbai, India</span>
+                  <span>{contact.address}</span>
                 </div>
 
-                {/* Newsletter Signup */}
-                <div className="mt-4">
-                  <p className="text-xs text-cream-50/50 mb-2">Subscribe for daily wisdom</p>
-                  <div className="flex">
-                    <input
-                      type="email"
-                      placeholder="Your email"
-                      className="flex-1 px-3 py-2 text-sm bg-brown-900/50 border border-gold/20 rounded-l-lg focus:outline-none focus:border-gold placeholder:text-cream-50/30 text-cream-50"
-                    />
-                    <button className="px-3 py-2 bg-gradient-to-r from-saffron to-gold text-brown-900 rounded-r-lg hover:opacity-90 transition-opacity">
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+               
               </div>
             </div>
           </div>
@@ -238,17 +261,20 @@ export default function Footer() {
                 Your daily destination for spiritual guidance, devotion, and knowledge.
               </p>
               <div className="flex flex-wrap gap-2">
-                {socialLinks.slice(0, 4).map((social, index) => (
-                  <a
-                    key={index}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-full bg-cream-50/5 border border-gold/20 flex items-center justify-center hover:bg-gold/20 transition-all"
-                  >
-                    <social.icon className="w-3.5 h-3.5 text-cream-50/60 hover:text-gold transition-colors" />
-                  </a>
-                ))}
+                {socialLinks.slice(0, 4).map((social, index) => {
+                  if (!social.href || social.href === '#') return null;
+                  return (
+                    <a
+                      key={index}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-8 h-8 rounded-full bg-cream-50/5 border border-gold/20 flex items-center justify-center hover:bg-gold/20 transition-all"
+                    >
+                      <social.icon className="w-3.5 h-3.5 text-cream-50/60 hover:text-gold transition-colors" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
 
@@ -305,14 +331,24 @@ export default function Footer() {
                   Contact
                 </h4>
                 <div className="space-y-2 text-sm">
-                  <a href="mailto:info@aarambhtv.com" className="flex items-center gap-2 text-cream-50/70 hover:text-gold transition-colors">
+                  <a href={`mailto:${contact.contactEmail}`} className="flex items-center gap-2 text-cream-50/70 hover:text-gold transition-colors">
                     <Mail className="w-3.5 h-3.5 text-gold" />
-                    <span className="text-xs">info@aarambhtv.com</span>
+                    <span className="text-xs">{contact.contactEmail}</span>
                   </a>
-                  <a href="tel:+919999999999" className="flex items-center gap-2 text-cream-50/70 hover:text-gold transition-colors">
+                  <a href={`tel:${contact.phone1.replace(/\s/g, '')}`} className="flex items-center gap-2 text-cream-50/70 hover:text-gold transition-colors">
                     <Phone className="w-3.5 h-3.5 text-gold" />
-                    <span>+91 99999 99999</span>
+                    <span>{contact.phone1}</span>
                   </a>
+                  {contact.phone2 && (
+                    <a href={`tel:${contact.phone2.replace(/\s/g, '')}`} className="flex items-center gap-2 text-cream-50/70 hover:text-gold transition-colors">
+                      <Phone className="w-3.5 h-3.5 text-gold" />
+                      <span>{contact.phone2}</span>
+                    </a>
+                  )}
+                  <div className="flex items-start gap-2 text-cream-50/70 text-sm">
+                    <MapPin className="w-3.5 h-3.5 text-gold flex-shrink-0 mt-0.5" />
+                    <span className="text-xs">{contact.address}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -320,9 +356,9 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom Footer Section */}
+      {/* Bottom Footer Section - Hardcoded */}
       <div className="bg-brown-900/90 border-t border-gold/10 text-cream-50/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex flex-col md:flex-row justify-between items-center gap-3">
             <p className="text-sm text-cream-50/50">
               © {currentYear} Aarambh TV. All rights reserved.

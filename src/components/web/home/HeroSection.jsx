@@ -1,4 +1,3 @@
-// components/home/HeroSection.jsx
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -263,7 +262,6 @@ export default function HeroSection() {
   // ============ RENDER ============
   const symbols = isMobile ? MOBILE_SANSKRIT_SYMBOLS : SANSKRIT_SYMBOLS;
   
-  // Use dynamic values or fallback defaults
   const {
     headingLine1,
     headingLine2,
@@ -282,17 +280,27 @@ export default function HeroSection() {
   return (
     <section
       className="relative flex items-center overflow-hidden"
-      style={{ height: 'clamp(480px, 68vh, 680px)' }}
+      style={{ height: isMobile ? 'clamp(520px, 75vh, 600px)' : 'clamp(480px, 68vh, 680px)' }}
     >
       {/* ── Hidden Audio Player ── */}
-      <audio
-        ref={audioRef}
-        src={songUrl}
-        loop
-        preload="auto"
-        onLoadedData={() => setIsLoaded(true)}
-        onError={() => console.log('Audio load error, using fallback')}
-      />
+      {/* ── Hidden Audio Player ── */}
+<audio
+  ref={audioRef}
+  src={songUrl}
+  loop
+  preload="auto"
+  onLoadedData={() => {
+    setIsLoaded(true);
+    console.log('✅ Audio loaded successfully');
+  }}
+  onError={(e) => {
+    console.log('❌ Audio load error, using fallback');
+    // If the Firebase URL fails, try using the default fallback
+    if (e.target.src !== '/music.mpeg') {
+      e.target.src = '/music.mpeg';
+    }
+  }}
+/>
 
       {/* ── Background image ── */}
       <div className="absolute inset-0 z-0">
@@ -304,11 +312,10 @@ export default function HeroSection() {
           className="object-cover object-top"
           quality={100}
           onError={(e) => {
-            // Fallback to default image if Firebase image fails
             e.target.src = isMobile ? '/MobHerobanner3.png' : '/Herocopy1.png';
           }}
         />
-        <div className={`absolute inset-0 ${isMobile ? 'bg-gradient-to-r from-black/50 via-black/30 to-transparent' : 'bg-gradient-to-r from-black/40 via-black/20 to-transparent'}`} />
+        <div className={`absolute inset-0 ${isMobile ? 'bg-gradient-to-r from-black/60 via-black/30 to-transparent' : 'bg-gradient-to-r from-black/40 via-black/20 to-transparent'}`} />
       </div>
 
       {/* ── Particle canvas ── */}
@@ -394,55 +401,53 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className={isMobile ? 'max-w-full' : 'max-w-xl'}
+          className={isMobile ? 'max-w-full py-4' : 'max-w-xl'}
         >
-          {/* Headline - split into white and gold lines */}
+          {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.28 }}
-            className="font-bold leading-[1.1] mb-3"
+            className={`font-bold leading-[1.1] ${isMobile ? 'mb-5' : 'mb-4'}`}
             style={{
               fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
-              fontSize: isMobile ? 'clamp(1.8rem, 8vw, 2.4rem)' : 'clamp(2rem, 4.2vw, 3.4rem)',
+              fontSize: isMobile ? 'clamp(1.8rem, 7vw, 2.4rem)' : 'clamp(2rem, 4vw, 3.2rem)',
             }}
           >
             <span
-              className="text-white"
+              className="text-white block"
               style={{ textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}
             >
               {headingLine1}
             </span>
-            {headingLine2 ? (
-              <>
-                <br />
-                <span
-                  style={{
-                    background: 'linear-gradient(95deg, #FFD700 0%, #FF8C00 55%, #FFD700 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}
-                >
-                  {headingLine2}
-                </span>
-              </>
-            ) : null}
+            {headingLine2 && (
+              <span
+                className="block mt-1.5"
+                style={{
+                  background: 'linear-gradient(95deg, #FFD700 0%, #FF8C00 55%, #FFD700 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                {headingLine2}
+              </span>
+            )}
           </motion.h1>
 
-          {/* Tagline / Sanskrit verse */}
+          {/* Tagline */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.38 }}
-            className={`${isMobile ? 'mb-3' : 'mb-4'}`}
+            className={isMobile ? 'mb-5' : 'mb-5'}
           >
             <p
               className="italic"
               style={{
                 fontFamily: "'Noto Serif Devanagari', 'Mangal', serif",
-                fontSize: isMobile ? 'clamp(0.9rem, 1.6vw, 1.15rem)' : 'clamp(0.9rem, 1.6vw, 1.15rem)',
-                color: 'rgba(255,210,60,0.85)',
+                fontSize: isMobile ? 'clamp(1rem, 3.5vw, 1.2rem)' : 'clamp(1rem, 1.6vw, 1.2rem)',
+                color: 'rgba(255,210,60,0.90)',
                 textShadow: '0 1px 10px rgba(255,170,0,0.35)',
                 lineHeight: 1.5,
               }}
@@ -451,64 +456,79 @@ export default function HeroSection() {
             </p>
           </motion.div>
 
-          {/* Feature chips */}
+          {/* Feature chips - Hide Panchang on mobile */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.46 }}
-            className="flex flex-wrap gap-1.5 mb-6"
+            className={`flex flex-wrap gap-2 ${isMobile ? 'mb-5' : 'mb-6'}`}
           >
-            {(isMobile ? ['Panchang', 'Bhajans', 'Temples','Horoscope','Festivals'] : ['Panchang', 'Bhajans', 'Temples', 'Horoscope', 'Festivals']).map((item) => (
-              <span
-                key={item}
-                className={`${isMobile ? 'text-[12px] px-1 py-1' : 'text-[11px] px-2.5 py-0.5'} font-medium text-white/80 rounded-full`}
-                style={{
-                  background: 'rgba(255,255,255,0.09)',
-                  border: '1px solid rgba(255,255,255,0.16)',
-                  backdropFilter: 'blur(6px)',
-                }}
-              >
-                {item}
-              </span>
-            ))}
+            {isMobile 
+              ? ['Bhajans', 'Temples', 'Horoscope', 'Festivals'].map((item) => (
+                  <span
+                    key={item}
+                    className="text-[11px] px-2.5 py-1 font-medium text-white/80 rounded-full"
+                    style={{
+                      background: 'rgba(255,255,255,0.09)',
+                      border: '1px solid rgba(255,255,255,0.16)',
+                      backdropFilter: 'blur(6px)',
+                    }}
+                  >
+                    {item}
+                  </span>
+                ))
+              : ['Panchang', 'Bhajans', 'Temples', 'Horoscope', 'Festivals'].map((item) => (
+                  <span
+                    key={item}
+                    className="text-[11px] px-2.5 py-0.5 font-medium text-white/80 rounded-full"
+                    style={{
+                      background: 'rgba(255,255,255,0.09)',
+                      border: '1px solid rgba(255,255,255,0.16)',
+                      backdropFilter: 'blur(6px)',
+                    }}
+                  >
+                    {item}
+                  </span>
+                ))
+            }
           </motion.div>
 
-          {/* CTAs - using dynamic values */}
+          {/* CTAs */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55 }}
-            className="flex flex-wrap gap-3 mb-6"
+            className={`flex ${isMobile ? 'flex-nowrap gap-2 mb-5' : 'flex-wrap gap-3 mb-6'}`}
           >
             <Link
               href={ctaLink}
-              className="group inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold transition-all duration-300 hover:scale-105 active:scale-95"
+              className={`group inline-flex items-center gap-1.5 rounded-2xl font-semibold transition-all duration-300 hover:scale-105 active:scale-95 ${
+                isMobile ? 'px-3 py-2.5 text-xs flex-1 justify-center' : 'px-5 py-2.5 text-base'
+              }`}
               style={{
                 background: 'linear-gradient(135deg, #D94F0A 0%, #F4B400 100%)',
                 color: '#fff',
                 boxShadow: '0 4px 22px rgba(244,160,0,0.50)',
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontSize: isMobile ? '0.9rem' : '1.05rem',
                 letterSpacing: '0.03em',
-                padding: isMobile ? '8px 16px' : '8px 16px',
               }}
             >
               {ctaText}
-              <ChevronRight className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} group-hover:translate-x-1 transition-transform`} />
+              <ChevronRight className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} group-hover:translate-x-1 transition-transform`} />
             </Link>
 
             <Link
               href="/spiritual-videos"
-              className="group inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold transition-all duration-300 hover:scale-105 active:scale-95"
+              className={`group inline-flex items-center gap-1.5 rounded-2xl font-semibold transition-all duration-300 hover:scale-105 active:scale-95 ${
+                isMobile ? 'px-3 py-2.5 text-xs flex-1 justify-center' : 'px-5 py-2.5 text-base'
+              }`}
               style={{
                 background: 'rgba(255,255,255,0.08)',
                 color: '#fff',
                 border: '1.5px solid rgba(255,210,60,0.55)',
                 backdropFilter: 'blur(8px)',
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontSize: isMobile ? '0.9rem' : '1.05rem',
                 letterSpacing: '0.03em',
-                padding: isMobile ? '8px 16px' : '8px 16px',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,210,60,0.14)'}
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
@@ -518,12 +538,12 @@ export default function HeroSection() {
             </Link>
           </motion.div>
 
-          {/* Mantra of the day - using dynamic values */}
+          {/* Mantra of the day */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.72 }}
-            className={`inline-flex items-center gap-2.5 ${isMobile ? 'px-3 py-2' : 'px-4 py-2.5'} rounded-xl relative`}
+            className={`inline-flex items-center gap-3 ${isMobile ? 'px-4 py-3' : 'px-5 py-3.5'} rounded-xl relative`}
             style={{
               background: 'rgba(10,5,0,0.38)',
               backdropFilter: 'blur(14px)',
@@ -541,24 +561,24 @@ export default function HeroSection() {
             />
             
             <div className="relative z-10">
-              <p className={`${isMobile ? 'text-[7px]' : 'text-[9px]'} text-white/45 uppercase tracking-[0.18em] mb-2 flex items-center gap-1`}>
-                <Sparkles className={`${isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'} text-gold`} />
+              <p className={`${isMobile ? 'text-[8px]' : 'text-[9px]'} text-white/45 uppercase tracking-[0.18em] mb-2 flex items-center gap-1`}>
+                <Sparkles className={`${isMobile ? 'w-3 h-3' : 'w-2.5 h-2.5'} text-gold`} />
                 Mantra of the Day
               </p>
               <motion.p
                 style={{
                   fontFamily: "'Noto Serif Devanagari', 'Mangal', serif",
-                  fontSize: isMobile ? '0.85rem' : '1.05rem',
+                  fontSize: isMobile ? 'clamp(1rem, 3.5vw, 1.15rem)' : '1.05rem',
                   color: '#FFD700',
                   textShadow: '0 0 16px rgba(255,215,0,0.55)',
-                  lineHeight: 1.35,
+                  lineHeight: 1.4,
                 }}
                 animate={{ opacity: [0.72, 1, 0.72] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               >
                 {mantra}
               </motion.p>
-              <p className={`${isMobile ? 'text-[7px]' : 'text-[9px]'} text-white/40 mt-0.5`}>
+              <p className={`${isMobile ? 'text-[8px]' : 'text-[9px]'} text-white/40 mt-1`}>
                 "{mantraTranslation}"
               </p>
             </div>
@@ -570,7 +590,7 @@ export default function HeroSection() {
       <div
         className="absolute bottom-0 left-0 right-0 pointer-events-none z-[3]"
         style={{
-          height: isMobile ? '6px' : '10px',
+          height: isMobile ? '8px' : '12px',
           background:
             'linear-gradient(to top, #fdf6ec 0%, rgba(253,246,236,0.85) 30%, rgba(253,246,236,0.40) 65%, transparent 100%)',
         }}

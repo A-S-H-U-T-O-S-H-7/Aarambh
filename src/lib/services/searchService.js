@@ -38,15 +38,9 @@ export default function SongManager({ data, onSave, isDark, saving }) {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Check if it's an audio file - support mp3, mpeg, wav, ogg, etc.
-    const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg3'];
-    const validExtensions = ['.mp3', '.mpeg', '.wav', '.ogg', '.mpga'];
-    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-    
-    const isValidType = validTypes.includes(file.type) || validExtensions.includes(fileExtension);
-    
-    if (!isValidType) {
-      toast.error('Please upload an audio file (mp3, mpeg, wav, ogg, etc.)');
+    // Check if it's an audio file
+    if (!file.type.startsWith('audio/')) {
+      toast.error('Please upload an audio file (mp3, wav, ogg, etc.)');
       e.target.value = '';
       return;
     }
@@ -89,9 +83,7 @@ export default function SongManager({ data, onSave, isDark, saving }) {
         } else if (song.url) {
           audioPreviewRef.current.src = song.url;
         }
-        audioPreviewRef.current.play().catch(() => {
-          toast.error('Failed to play audio');
-        });
+        audioPreviewRef.current.play();
         setPreviewPlaying(true);
       }
     }
@@ -125,7 +117,6 @@ export default function SongManager({ data, onSave, isDark, saving }) {
       oldAudioUrl: data?.url, // Store old URL for deletion
     };
     
-    // Pass both data and audioFile to onSave
     const result = await onSave(saveData, audioFile);
     
     setIsUploading(false);
@@ -133,7 +124,10 @@ export default function SongManager({ data, onSave, isDark, saving }) {
     if (result?.success) {
       setAudioFile(null);
       setAudioFileName('');
-      toast.success('Song saved successfully!');
+      // Refresh the audio preview
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.src = result.audioUrl || song.url;
+      }
     }
   };
 
@@ -199,10 +193,9 @@ export default function SongManager({ data, onSave, isDark, saving }) {
           />
         </div>
 
-        {/* Audio File Upload */}
         <div>
           <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Upload Audio File (MP3, MPEG, WAV, OGG) *
+            Upload Audio File (MP3, WAV, OGG)
           </label>
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
@@ -212,10 +205,10 @@ export default function SongManager({ data, onSave, isDark, saving }) {
                   : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-600'
               } border`}>
                 <FileAudio className="w-4 h-4" />
-                <span className="truncate">{audioFileName || 'Choose audio file (max 20MB)'}</span>
+                <span>{audioFileName || 'Choose audio file (max 20MB)'}</span>
                 <input
                   type="file"
-                  accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,.mp3,.mpeg,.wav,.ogg"
+                  accept="audio/*"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -245,20 +238,17 @@ export default function SongManager({ data, onSave, isDark, saving }) {
                 </button>
                 <div className="flex-1 min-w-0">
                   <p className={`text-xs truncate ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {audioFileName || (song.url ? 'Current audio from URL' : 'No audio')}
+                    {audioFileName || (song.url ? 'Current audio' : 'No audio')}
                   </p>
                 </div>
               </div>
             )}
           </div>
-          <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            Upload your own audio file (.mp3, .mpeg, .wav, .ogg) or use a URL below
-          </p>
         </div>
 
         <div>
           <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            OR Audio URL (YouTube embed / direct MP3)
+            OR Enter Audio URL (YouTube embed / direct MP3)
           </label>
           <input
             type="text"
