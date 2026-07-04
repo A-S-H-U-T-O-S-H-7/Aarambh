@@ -1,4 +1,3 @@
-// components/web/home/bhajan/BhajanCard.jsx
 'use client';
 
 import { useState } from 'react';
@@ -92,7 +91,6 @@ export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked,
 
   const thumbnailUrl = getYouTubeThumbnail(bhajan.youtubeUrl);
 
-  // Badge logic: if both featured and trending, show only trending
   const showFeatured = bhajan.isFeatured && !bhajan.isTrending;
   const showTrending = bhajan.isTrending;
 
@@ -117,12 +115,12 @@ export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked,
 
       {/* Cover Art */}
       <div className={`relative aspect-square w-full bg-gradient-to-br ${getCategoryGradient(bhajan.category)} overflow-hidden`}>
-        {/* Thumbnail Image */}
+        {/* Thumbnail Image - object-contain to show full image */}
         {thumbnailUrl && !imgError ? (
           <img
             src={thumbnailUrl}
             alt={bhajan.title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
             onError={() => setImgError(true)}
           />
         ) : (
@@ -136,7 +134,7 @@ export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked,
         {/* Dark overlay - darker on hover */}
         <div className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${hovered || isPlaying ? 'opacity-60' : 'opacity-0'}`} />
 
-        {/* ─── SINGLE PLAY BUTTON ─── */}
+        {/* ─── PLAY BUTTON ─── */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.button
             whileHover={{ scale: 1.15 }}
@@ -172,22 +170,23 @@ export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked,
           {isPlaying ? 'Now Playing' : 'Play'}
         </div>
 
-        {/* Badges */}
-        {showFeatured && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 bg-gold text-brown-900 text-[9px] font-bold rounded-full shadow">
-            ⭐ Featured
-          </div>
-        )}
-
-        {showTrending && (
-          <div className={`absolute top-2 ${showFeatured ? 'left-20' : 'left-2'} px-2 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full shadow`}>
-            🔥 Trending
-          </div>
-        )}
+        {/* ─── BADGES ─── */}
+        <div className="absolute top-2 left-2 flex flex-wrap items-center gap-1.5 z-10">
+          {showFeatured && (
+            <span className="px-2 py-0.5 bg-gold text-brown-900 text-[9px] font-bold rounded-full shadow-lg">
+              ⭐ Featured
+            </span>
+          )}
+          {showTrending && (
+            <span className="px-2 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full shadow-lg">
+              🔥 Trending
+            </span>
+          )}
+        </div>
 
         {/* Duration pill */}
         {bhajan.duration && (
-          <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[10px] rounded-full flex items-center gap-1">
+          <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[10px] rounded-full flex items-center gap-1 z-10">
             <FaClock className="w-2.5 h-2.5" />
             {bhajan.duration}
           </div>
@@ -195,7 +194,7 @@ export default function BhajanCard({ bhajan, isPlaying, onPlay, onLike, isLiked,
 
         {/* Now playing wave bars */}
         {isPlaying && (
-          <div className="absolute bottom-2 left-2 flex items-end gap-0.5 h-4">
+          <div className="absolute bottom-2 left-2 flex items-end gap-0.5 h-4 z-10">
             {[1, 2, 3, 4].map((i) => (
               <motion.div
                 key={i}

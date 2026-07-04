@@ -163,7 +163,7 @@ export default function StoriesPage() {
         <div className="absolute bottom-0 -left-20 w-[400px] h-[400px] bg-gradient-radial from-orange-200/30 to-transparent rounded-full blur-3xl dark:from-saffron/5" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="relative z-10 max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
 
         {/* ── Back Button ── */}
         <motion.div
@@ -272,7 +272,7 @@ export default function StoriesPage() {
         {filteredStories.length > 0 ? (
           <motion.div
             layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5"
+            className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5"
           >
             <AnimatePresence>
               {filteredStories.map((story) => (

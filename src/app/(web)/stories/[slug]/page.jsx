@@ -1,4 +1,3 @@
-// app/(web)/stories/[slug]/page.jsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -15,9 +14,9 @@ import {
   FaCopy,
   FaHeart,
   FaRegHeart,
-  FaTwitter,
-  FaUser,
+  FaFacebook,
   FaWhatsapp,
+  FaUser,
 } from 'react-icons/fa';
 import { getStoryById, getStoryBySlug, incrementStoryViews } from '@/lib/services/storyService';
 import { stories as mockStories } from '@/lib/mockStoryData';
@@ -120,7 +119,7 @@ export default function StoryDetailPage() {
     const url = window.location.href;
     const text = `📖 ${story.title} - ${story.description || story.excerpt || ''}`;
     const shareUrls = {
-      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
       whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`,
     };
 
@@ -180,17 +179,17 @@ export default function StoryDetailPage() {
   };
 
   return (
-    <div className="min-h-screen py-8 md:py-12 lg:py-16 relative overflow-hidden bg-gradient-to-b from-cream-50/30 via-white to-cream-50/30 dark:from-brown-900/20 dark:via-brown-900 dark:to-brown-900/20">
+    <div className="min-h-screen py-8 md:py-6 lg:py-8 relative overflow-hidden bg-gradient-to-b from-cream-50/30 via-white to-cream-50/30 dark:from-brown-900/20 dark:via-brown-900 dark:to-brown-900/20">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-saffron/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center text-brown-600 dark:text-cream-50/60 hover:text-saffron transition-colors text-sm group"
+            className="inline-flex cursor-pointer items-center text-brown-600 dark:text-cream-50/60 hover:text-saffron transition-colors text-sm group"
           >
             <FaArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
             Back to Stories
@@ -202,22 +201,33 @@ export default function StoryDetailPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white dark:bg-brown-800/80 backdrop-blur-sm rounded-2xl border border-gold/20 dark:border-gold/10 shadow-xl overflow-hidden"
         >
-          <div className="relative w-full h-[300px] md:h-[400px] lg:h-[450px]">
+          {/* ─── Image Section - Responsive & No Crop ─── */}
+          <div className="relative w-full overflow-hidden bg-gradient-to-br from-saffron/20 to-gold/20">
             {storyImage ? (
-              <Image src={storyImage} alt={story.title} fill className="object-cover" priority />
-            ) : (
-              <div className="h-full w-full bg-gradient-to-br from-saffron/20 to-gold/20" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-            <div className="absolute bottom-4 left-4">
-              <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium ${getCategoryColor(story.category)} shadow-lg`}>
-                <span>{getCategoryEmoji(story.category)}</span>
-                <span className="capitalize">{story.category || 'spiritual'}</span>
+              <div className="relative w-full" style={{ aspectRatio: '19/9' }}>
+                <Image
+                  src={storyImage}
+                  alt={story.title}
+                  fill
+                  className="object-contain"
+                  priority
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                />
               </div>
+            ) : (
+              <div className="h-[300px] md:h-[400px] lg:h-[450px] w-full flex items-center justify-center bg-gradient-to-br from-saffron/20 to-gold/20">
+                <span className="text-8xl opacity-40">📖</span>
+              </div>
+            )}
+            
+            {/* Category Badge - Overlay at bottom */}
+            <div className={`absolute bottom-4 left-4 inline-flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium ${getCategoryColor(story.category)} shadow-lg`}>
+              <span>{getCategoryEmoji(story.category)}</span>
+              <span className="capitalize">{story.category || 'spiritual'}</span>
             </div>
           </div>
 
+          {/* ─── Content ─── */}
           <div className="p-6 md:p-8 lg:p-10">
             <div className="mb-6">
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-brown-900 dark:text-cream-50 mb-3">
@@ -298,10 +308,10 @@ export default function StoryDetailPage() {
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-brown-500 dark:text-cream-50/40">Share:</span>
                 <button
-                  onClick={() => handleShare('twitter')}
-                  className="p-2 rounded-full bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 text-[#1DA1F2] transition-colors"
+                  onClick={() => handleShare('facebook')}
+                  className="p-2 rounded-full bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] transition-colors"
                 >
-                  <FaTwitter className="w-4 h-4" />
+                  <FaFacebook className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleShare('whatsapp')}

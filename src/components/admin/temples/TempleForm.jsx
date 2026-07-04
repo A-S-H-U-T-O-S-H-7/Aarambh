@@ -1,4 +1,3 @@
-// components/admin/temples/TempleForm.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,18 +15,67 @@ import {
   Calendar,
   Building,
   Info,
-  Gift
+  Gift,
+  Sparkles
 } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
+import AIGenerateButton from '@/components/admin/AIGenerateButton';
+
+// ─── SLUG GENERATION WITH TRANSLITERATION ───
+const transliterateHindi = (text) => {
+  const map = {
+    'अ': 'a', 'आ': 'aa', 'इ': 'i', 'ई': 'ee', 'उ': 'u', 'ऊ': 'oo',
+    'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au',
+    'क': 'k', 'ख': 'kh', 'ग': 'g', 'घ': 'gh', 'ङ': 'ng',
+    'च': 'ch', 'छ': 'chh', 'ज': 'j', 'झ': 'jh', 'ञ': 'ny',
+    'ट': 't', 'ठ': 'th', 'ड': 'd', 'ढ': 'dh', 'ण': 'n',
+    'त': 't', 'थ': 'th', 'द': 'd', 'ध': 'dh', 'न': 'n',
+    'प': 'p', 'फ': 'ph', 'ब': 'b', 'भ': 'bh', 'म': 'm',
+    'य': 'y', 'र': 'r', 'ल': 'l', 'व': 'v',
+    'श': 'sh', 'ष': 'sh', 'स': 's', 'ह': 'h',
+    'क्ष': 'ksh', 'त्र': 'tr', 'ज्ञ': 'gya',
+    'ा': 'a', 'ि': 'i', 'ी': 'ee', 'ु': 'u', 'ू': 'oo',
+    'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au',
+    'ं': 'n', 'ः': 'h', '्': ''
+  };
+  
+  let result = '';
+  let i = 0;
+  while (i < text.length) {
+    if (i + 1 < text.length) {
+      const twoChar = text.substring(i, i + 2);
+      if (map[twoChar]) {
+        result += map[twoChar];
+        i += 2;
+        continue;
+      }
+    }
+    const char = text[i];
+    if (map[char]) {
+      result += map[char];
+    } else {
+      result += char;
+    }
+    i++;
+  }
+  return result;
+};
 
 const generateSlug = (title) => {
-  return title
+  if (!title) return '';
+  
+  let slug = transliterateHindi(title);
+  slug = slug
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
+  
+  return slug || 'untitled';
 };
+
+// ─── COMPONENT ───
 
 export default function TempleForm({ formData, errors, onInputChange, isDark }) {
   const [festivalsInput, setFestivalsInput] = useState('');
@@ -57,9 +105,47 @@ export default function TempleForm({ formData, errors, onInputChange, isDark }) 
     onInputChange('festivals', current.filter((_, i) => i !== index));
   };
 
+  // ─── AI CONTENT ───
+  const getAIContent = () => {
+    const name = formData.title || '';
+    const location = formData.location || '';
+    const deity = formData.deity || '';
+    const description = formData.fullDescription || '';
+    return `Temple: ${name}\nLocation: ${location}\nDeity: ${deity}\nDescription: ${description}`;
+  };
+
+  // Check if all required fields are filled for AI
+  const isAIEnabled = () => {
+    return !!(
+      formData.title?.trim() &&
+      formData.location?.trim() &&
+      formData.deity?.trim() &&
+      formData.fullDescription?.trim()
+    );
+  };
+
+  // Handle AI generated data
+  const handleAIGenerated = (field, value) => {
+    if (field === 'shortDescription') {
+      onInputChange('shortDescription', value);
+    } else if (field === 'significance') {
+      onInputChange('significance', value);
+    } else if (field === 'festivals') {
+      // Festivals come as comma-separated string, convert to array
+      const festivalsArray = value.split(',').map(f => f.trim()).filter(f => f);
+      onInputChange('festivals', festivalsArray);
+    } else if (field === 'metatitle') {
+      onInputChange('metatitle', value);
+    } else if (field === 'metadesc') {
+      onInputChange('metadesc', value);
+    } else if (field === 'metakeywords') {
+      onInputChange('metakeywords', value);
+    }
+  };
+
   return (
     <div className="space-y-5">
-      {/* Basic Information Card */}
+      {/* ─── Card 1: Basic Information ─── */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
@@ -169,7 +255,7 @@ export default function TempleForm({ formData, errors, onInputChange, isDark }) 
           <div>
             <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               <Building className="w-4 h-4 inline mr-1" />
-              Deity
+              Deity *
             </label>
             <input
               type="text"
@@ -204,19 +290,30 @@ export default function TempleForm({ formData, errors, onInputChange, isDark }) 
         </div>
       </div>
 
-      {/* Description Cards */}
+      {/* ─── Card 2: Description with AI Button ─── */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
           : 'border-gray-200 bg-white shadow-md'
       }`}>
-        <div className="flex items-center gap-3 mb-5 pb-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}">
-          <div className="rounded-lg bg-gradient-to-r from-purple-400 to-purple-500 p-2">
-            <FileText className="w-4 h-4 text-white" />
+        <div className="flex items-center justify-between gap-4 mb-5 pb-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-gradient-to-r from-purple-400 to-purple-500 p-2">
+              <FileText className="w-4 h-4 text-white" />
+            </div>
+            <h3 className={`text-base font-semibold ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+              Descriptions
+            </h3>
           </div>
-          <h3 className={`text-base font-semibold ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-            Descriptions
-          </h3>
+          
+          {/* AI Generate Button - Enabled only when required fields are filled */}
+          <AIGenerateButton
+            content={getAIContent()}
+            onGenerated={handleAIGenerated}
+            label="✨ Generate SEO & Details"
+            size="sm"
+            disabled={!isAIEnabled()}
+          />
         </div>
 
         <div className="mt-4">
@@ -242,7 +339,7 @@ export default function TempleForm({ formData, errors, onInputChange, isDark }) 
         <div className="mt-4">
           <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             <Info className="w-4 h-4 inline mr-1" />
-            Full Description (Detailed)
+            Full Description (Detailed) *
           </label>
           <RichTextEditor
             value={formData.fullDescription || ''}
@@ -251,10 +348,11 @@ export default function TempleForm({ formData, errors, onInputChange, isDark }) 
             minHeight="200px"
             isDark={isDark}
           />
+          {errors.fullDescription && <p className="text-red-500 text-xs mt-1.5">{errors.fullDescription}</p>}
         </div>
       </div>
 
-      {/* Significance & Festivals */}
+      {/* ─── Card 3: Significance & Festivals ─── */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
@@ -333,7 +431,7 @@ export default function TempleForm({ formData, errors, onInputChange, isDark }) 
         </div>
       </div>
 
-      {/* SEO Settings */}
+      {/* ─── Card 4: SEO Settings ─── */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 

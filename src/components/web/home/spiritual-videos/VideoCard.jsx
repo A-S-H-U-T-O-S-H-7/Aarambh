@@ -198,10 +198,7 @@ export default function VideoCard({ video, isPlaying, onPlay, onLike, isLiked, o
             <h3 className={`text-xs font-semibold leading-snug line-clamp-2 transition-colors ${isPlaying ? 'text-saffron' : 'text-brown-900 dark:text-cream-50 group-hover:text-saffron'}`}>
               {video.title}
             </h3>
-            <p className="text-[10px] text-brown-500 dark:text-cream-50/50 truncate mt-0.5 flex items-center gap-1">
-              <FaUserCircle className="w-2.5 h-2.5" />
-              {video.speaker}
-            </p>
+            
           </div>
           <button
             onClick={handleLikeClick}

@@ -1,4 +1,3 @@
-// components/web/home/video/VideoPlayerModal.jsx
 'use client';
 
 import { useEffect } from 'react';
@@ -77,6 +76,7 @@ export default function VideoPlayerModal({
   isPlaying,
   onPlay,
 }) {
+  // ESC to close + lock scroll
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -97,6 +97,7 @@ export default function VideoPlayerModal({
     <AnimatePresence>
       {isOpen && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -106,6 +107,7 @@ export default function VideoPlayerModal({
             onClick={onClose}
           />
 
+          {/* Modal container - SAME max-w-2xl as BhajanPlayerModal */}
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.93, y: 28 }}
@@ -115,8 +117,10 @@ export default function VideoPlayerModal({
               className="relative w-full max-w-2xl bg-white dark:bg-brown-900 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className={`h-1 w-full bg-gradient-to-r ${getCategoryGradient(video.category)}`} />
+              {/* Gradient accent bar - SAME as BhajanPlayerModal */}
+              {/* <div className={`h-1 w-full bg-gradient-to-r ${getCategoryGradient(video.category)}`} /> */}
 
+              {/* Close button - SAME position */}
               <button
                 onClick={onClose}
                 className="absolute top-3 right-3 z-20 p-2 rounded-full bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 transition-colors"
@@ -124,6 +128,7 @@ export default function VideoPlayerModal({
                 <FaTimes className="w-3.5 h-3.5 text-brown-800 dark:text-cream-50" />
               </button>
 
+              {/* ── Video / Cover area ── */}
               {hasVideo ? (
                 <div className="relative w-full aspect-video bg-black">
                   <iframe
@@ -137,9 +142,9 @@ export default function VideoPlayerModal({
                 </div>
               ) : (
                 <div className={`relative w-full aspect-video bg-gradient-to-br ${getCategoryGradient(video.category)} flex items-center justify-center`}>
-                  <span className="text-8xl opacity-40 select-none">
+                  {/* <span className="text-8xl opacity-40 select-none">
                     {getCategoryEmoji(video.category)}
-                  </span>
+                  </span> */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                     <motion.button
                       whileHover={{ scale: 1.1 }}
@@ -155,12 +160,14 @@ export default function VideoPlayerModal({
                 </div>
               )}
 
+              {/* ── Info + controls ── */}
               <div className="px-5 py-4 md:px-6 md:py-5">
+                {/* Category + title - SAME structure */}
                 <div className="flex items-start gap-3 mb-3">
                   <div className="flex-1 min-w-0">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20 mb-2 capitalize">
+                    {/* <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gold/10 text-gold border border-gold/20 mb-2 capitalize">
                       {getCategoryEmoji(video.category)} {video.category}
-                    </span>
+                    </span> */}
                     <h2 className="text-base md:text-lg font-bold text-brown-900 dark:text-cream-50 leading-snug">
                       {video.title}
                     </h2>
@@ -171,6 +178,7 @@ export default function VideoPlayerModal({
                   </div>
                 </div>
 
+                {/* Stats - SAME spacing as BhajanPlayerModal */}
                 <div className="flex items-center gap-4 text-xs text-brown-400 dark:text-cream-50/40 mb-4">
                   <span className="flex items-center gap-1">
                     <FaEye className="w-3 h-3" />
@@ -186,12 +194,14 @@ export default function VideoPlayerModal({
                   </span>
                 </div>
 
+                {/* Description - SAME padding as BhajanPlayerModal */}
                 {video.description && (
                   <p className="text-xs text-brown-600 dark:text-cream-50/60 leading-relaxed mb-4 line-clamp-2">
                     {video.description}
                   </p>
                 )}
 
+                {/* Controls row - SAME as BhajanPlayerModal */}
                 <div className="flex items-center justify-between pt-3 border-t border-gold/10">
                   <div className="flex items-center gap-2">
                     <button

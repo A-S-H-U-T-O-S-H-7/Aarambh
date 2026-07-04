@@ -106,9 +106,9 @@ export default function Footer() {
     <footer className="w-full">
       <div className="bg-gradient-to-br from-brown-900 via-brown-800 to-saffron/90 border-t border-gold/20 text-cream-50">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-8">
             {/* Column 1 - Logo, Description & Social */}
-            <div className="sm:col-span-2 lg:col-span-1">
+            <div className="col-span-2 lg:col-span-1">
               <div className="flex items-center gap-3 mb-4">
                 <Link href="/" className="flex items-center gap-3">
                   <Image
@@ -187,7 +187,7 @@ export default function Footer() {
             </div>
 
             {/* Column 4 - Get in Touch */}
-            <div className="sm:col-span-2 lg:col-span-1">
+            <div className="col-span-2 lg:col-span-1">
               <h4 className="text-base lg:text-lg font-semibold text-gold mb-3 lg:mb-4 pb-1 border-b border-gold/20 inline-block">
                 Get in Touch
               </h4>

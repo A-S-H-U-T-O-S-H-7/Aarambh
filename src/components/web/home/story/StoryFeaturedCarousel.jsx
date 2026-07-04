@@ -1,4 +1,3 @@
-// components/home/StoryFeaturedCarousel.jsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -34,7 +33,6 @@ export default function StoryFeaturedCarousel({ stories }) {
     setCurrentIndex((prev) => (prev - 1 + stories.length) % stories.length);
   };
 
-  // Auto-scroll
   useEffect(() => {
     if (!isPaused && stories.length > 1) {
       timerRef.current = setInterval(nextSlide, 5000);
@@ -51,7 +49,7 @@ export default function StoryFeaturedCarousel({ stories }) {
 
   return (
     <div 
-      className="relative group"
+      className="relative group h-full"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -62,10 +60,10 @@ export default function StoryFeaturedCarousel({ stories }) {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -50 }}
           transition={{ duration: 0.6 }}
-          className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-brown-800 to-brown-900 shadow-xl border border-gold/20"
+          className="relative w-full h-full rounded-2xl overflow-hidden bg-gradient-to-br from-brown-800 to-brown-900 shadow-xl border border-gold/20"
         >
-          {/* Image */}
-          <div className="relative w-full h-[300px] md:h-[380px] lg:h-[420px]">
+          {/* Image - Full height */}
+          <div className="relative w-full h-full">
             <Image
               src={story.image}
               alt={story.title}
@@ -100,7 +98,7 @@ export default function StoryFeaturedCarousel({ stories }) {
                 {story.description}
               </p>
               
-              {/* Author & Source */}
+              {/* Author */}
               <div className="flex flex-wrap items-center gap-2 text-sm text-white/60 mb-4">
                 {story.author ? (
                   <div className="flex items-center space-x-2">

@@ -285,10 +285,7 @@ export default function SpiritualVideos() {
                       <h4 className="text-sm sm:text-[15px] font-semibold text-[#3D2B1A] dark:text-[#F5EAD9] line-clamp-2 leading-snug group-hover:text-[#E8742C] dark:group-hover:text-[#F4B400] transition-colors">
                         {video.title}
                       </h4>
-                      <p className="text-xs text-[#8C7456] dark:text-[#9C8569] mt-1 flex items-center gap-1">
-                        <FaUserCircle className="w-3 h-3" />
-                        {video.speaker}
-                      </p>
+                      
                       {video.description && (
                         <p className="text-xs text-[#6B5640] dark:text-[#B8A088] mt-2 line-clamp-2 leading-relaxed">
                           {video.description}

@@ -1,4 +1,3 @@
-// components/admin/media/MediaForm.jsx
 'use client';
 
 import { useState, useEffect, useRef } from "react";
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { FaYoutube } from "react-icons/fa";
 import RichTextEditor from "../RichTextEditor";
+import AIGenerateButton from "@/components/admin/AIGenerateButton";
 
 const generateSlug = (title) => {
   return title
@@ -59,6 +59,13 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
     onInputChange("mediaType", type);
   };
 
+  // Get combined content for AI (title + description)
+  const getAIContent = () => {
+    const title = formData.title || '';
+    const description = formData.description || '';
+    return `${title} ${description}`;
+  };
+
   useEffect(() => {
     if (!tagsSyncedRef.current && formData.tags?.length > 0) {
       setTagsInput(formData.tags.join(', '));
@@ -74,7 +81,7 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
 
   return (
     <div className="space-y-5">
-      {/* Combined Card: Basic Information + Media Details */}
+      {/* Card 1: Basic Information & Media Details */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
@@ -150,9 +157,9 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
           </div>
         </div>
 
-        {/* Row 2: YouTube URL (full width) + Category */}
+        {/* Row 2: YouTube URL + Category */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div className="md:col-span-1">
+          <div>
             <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               <FaYoutube className="w-4 h-4 inline mr-1.5" />
               YouTube URL *
@@ -173,7 +180,6 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
             {errors.youtubeUrl && <p className="text-red-500 text-xs mt-1.5">{errors.youtubeUrl}</p>}
           </div>
 
-          {/* Category - Dropdown with options */}
           <div>
             <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               <FolderOpen className="w-4 h-4 inline mr-1.5" />
@@ -252,7 +258,7 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
         )}
       </div>
 
-      {/* Card 3: Description */}
+      {/* Card 2: Description */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
@@ -276,7 +282,7 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
         />
       </div>
 
-      {/* Card 4: Tags */}
+      {/* Card 3: Tags */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
@@ -325,19 +331,29 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
         </div>
       </div>
 
-      {/* Card 5: SEO Settings - Meta Title & Keywords in one row, Description below */}
+      {/* Card 4: SEO Settings - with AI Generate Button */}
       <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
         isDark 
           ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
           : 'border-gray-200 bg-white shadow-md'
       }`}>
-        <div className="flex items-center gap-3 mb-5 pb-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}">
-          <div className="rounded-lg bg-gradient-to-r from-indigo-400 to-indigo-500 p-2">
-            <Globe className="w-4 h-4 text-white" />
+        <div className="flex items-center justify-between gap-4 mb-5 pb-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-gradient-to-r from-indigo-400 to-indigo-500 p-2">
+              <Globe className="w-4 h-4 text-white" />
+            </div>
+            <h3 className={`text-base font-semibold ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+              SEO Settings
+            </h3>
           </div>
-          <h3 className={`text-base font-semibold ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-            SEO Settings
-          </h3>
+          
+          {/* ONE BUTTON - Generates All SEO from Title + Description */}
+          <AIGenerateButton
+            content={getAIContent()}
+            onGenerated={onInputChange}
+            label="✨ Generate All SEO"
+            size="sm"
+          />
         </div>
 
         <div className="space-y-4">
@@ -379,7 +395,7 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
             </div>
           </div>
 
-          {/* Row 2: Meta Description (full width) */}
+          {/* Row 2: Meta Description */}
           <div>
             <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Meta Description

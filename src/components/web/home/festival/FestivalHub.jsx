@@ -3,42 +3,27 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { FaArrowRight, FaClock, FaStar } from 'react-icons/fa';
+import { FaStar } from 'react-icons/fa';
 import { GiSparkles } from 'react-icons/gi';
 import FestivalCarousel from './FestivalCarousel';
-import FestivalTimelineCard from './FestivalTimelineCard';
-import { getFeaturedFestivals, getUpcomingFestivals } from '@/lib/services/festivalService';
+import { getFeaturedFestivals } from '@/lib/services/festivalService';
 
 export default function FestivalHub() {
   const [featuredFestivals, setFeaturedFestivals] = useState([]);
-  const [upcomingFestivals, setUpcomingFestivals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [featuredResult, upcomingResult] = await Promise.all([
-          getFeaturedFestivals(6),
-          getUpcomingFestivals(10),
-        ]);
+        const featuredResult = await getFeaturedFestivals(6);
         
         if (featuredResult.success) {
-          // Ensure each festival has a slug
           const featuredWithSlug = featuredResult.festivals.map(f => ({
             ...f,
             slug: f.slug || f.id
           }));
           setFeaturedFestivals(featuredWithSlug);
-        }
-        
-        if (upcomingResult.success) {
-          const upcomingWithSlug = upcomingResult.festivals.map(f => ({
-            ...f,
-            slug: f.slug || f.id
-          }));
-          setUpcomingFestivals(upcomingWithSlug);
         }
       } catch (error) {
         console.error('Error fetching festivals:', error);
@@ -60,7 +45,7 @@ export default function FestivalHub() {
   }
 
   // If no festivals, don't render
-  if (featuredFestivals.length === 0 && upcomingFestivals.length === 0) {
+  if (featuredFestivals.length === 0) {
     return null;
   }
 
@@ -143,51 +128,6 @@ export default function FestivalHub() {
             <FestivalCarousel festivals={featuredFestivals} />
           </motion.div>
         )}
-
-        {/* Upcoming Festivals Timeline */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.25 }}
-        >
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className="text-base sm:text-lg font-semibold text-[#3D2B1A] dark:text-[#F5EAD9] flex items-center gap-2">
-              <FaClock className="w-4 h-4 text-[#C2570F] dark:text-[#FFA45C]" />
-              <span>Upcoming Festivals</span>
-            </h3>
-            <span className="text-[11px] sm:text-xs text-[#8C7456] dark:text-[#9C8569] bg-white/80 dark:bg-[#241B14]/80 px-3 py-1 rounded-full border border-[#F4B400]/15">
-              {upcomingFestivals.length} festivals ahead
-            </span>
-          </div>
-
-          <div className="space-y-3 sm:space-y-4">
-            {upcomingFestivals.slice(0, 5).map((festival, index) => (
-              <FestivalTimelineCard key={festival.id} festival={festival} index={index} />
-            ))}
-          </div>
-
-          {upcomingFestivals.length > 5 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="text-center mt-6 sm:mt-8"
-            >
-              <Link
-                href="/festivals"
-                className="inline-flex items-center px-6 py-2.5 text-white font-medium rounded-full transition-all duration-300 hover:scale-105 text-sm group shadow-lg"
-                style={{
-                  background: 'linear-gradient(135deg, #E85D04, #F4B400)',
-                  boxShadow: '0 4px 20px rgba(244,180,0,0.3)',
-                }}
-              >
-                View all {upcomingFestivals.length} festivals
-                <FaArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </motion.div>
-          )}
-        </motion.div>
       </div>
     </section>
   );
