@@ -1,9 +1,8 @@
-// app/(web)/temples/[slug]/page.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -12,7 +11,7 @@ import {
   FaHeart,
   FaRegHeart,
   FaShare,
-  FaTwitter,
+  FaFacebook,
   FaWhatsapp,
   FaCopy,
   FaCheck,
@@ -22,10 +21,35 @@ import {
   FaInfoCircle,
   FaCalendarAlt,
   FaGift,
-  FaArrowRight
+  FaArrowRight,
+  FaHeadphones,
+  FaPause,
+  FaPlay,
+  FaVolumeUp,
+  FaVolumeMute,
+  FaTimes,
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { getTempleBySlug, incrementTempleView, toggleTempleLike } from '@/lib/services/templeService';
+
+// Helper to strip HTML tags AND decode HTML entities
+const stripHtml = (html) => {
+  if (!html) return '';
+  
+  let text = html
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&[a-z]+;/gi, ' ');
+  
+  text = text.replace(/<[^>]*>/g, ' ');
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  return text;
+};
 
 const formatDate = (date) => {
   if (!date) return 'TBD';
@@ -34,6 +58,15 @@ const formatDate = (date) => {
     month: 'long',
     day: 'numeric',
   });
+};
+
+// Category names mapping
+const categoryNames = {
+  north: 'North India',
+  south: 'South India',
+  east: 'East India',
+  west: 'West India',
+  central: 'Central India',
 };
 
 export default function TempleDetailPage() {
@@ -47,6 +80,16 @@ export default function TempleDetailPage() {
   const [copied, setCopied] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // ─── Audio States ───
+  const [isAudioVisible, setIsAudioVisible] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const audioRef = useRef(null);
+  const seekBarRef = useRef(null);
+
   useEffect(() => {
     const fetchTemple = async () => {
       if (!slug) return;
@@ -55,7 +98,6 @@ export default function TempleDetailPage() {
         const result = await getTempleBySlug(slug);
         if (result.success && result.temple) {
           setTemple(result.temple);
-          // Increment view count
           await incrementTempleView(result.temple.id);
         } else {
           toast.error('Temple not found');
@@ -70,6 +112,126 @@ export default function TempleDetailPage() {
     };
     fetchTemple();
   }, [slug, router]);
+
+  // ─── Lazily create the Audio element ───
+  const ensureAudio = () => {
+    if (audioRef.current || !temple?.voiceoverUrl) return audioRef.current;
+
+    const audio = new Audio(temple.voiceoverUrl);
+    audioRef.current = audio;
+
+    audio.onloadedmetadata = () => setDuration(audio.duration);
+    audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
+    audio.onplay = () => setIsPlaying(true);
+    audio.onpause = () => setIsPlaying(false);
+    audio.onended = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+    audio.onerror = () => {
+      setIsPlaying(false);
+      toast.error('Failed to play audio');
+    };
+
+    return audio;
+  };
+
+  // ─── Set up audio as soon as temple loads ───
+  useEffect(() => {
+    if (temple?.voiceoverUrl) ensureAudio();
+  }, [temple]);
+
+  // ─── Cleanup audio on unmount ───
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // ─── Audio Controls ───
+  const togglePlay = () => {
+    const audio = ensureAudio();
+    if (!audio) {
+      toast.error('Audio not loaded');
+      return;
+    }
+
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play().catch(() => {
+        toast.error('Failed to play audio');
+      });
+    }
+  };
+
+  const toggleMute = () => {
+    if (!audioRef.current) return;
+    audioRef.current.muted = !isMuted;
+    setIsMuted(!isMuted);
+  };
+
+  const seekToClientX = (clientX) => {
+    if (!audioRef.current || !duration || !seekBarRef.current) return;
+    const rect = seekBarRef.current.getBoundingClientRect();
+    const x = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    const newTime = x * duration;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  // ─── Drag-to-seek support ───
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const onMove = (e) => {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      seekToClientX(clientX);
+    };
+    const onUp = () => setIsDragging(false);
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove);
+    window.addEventListener('touchend', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
+  }, [isDragging, duration]);
+
+  const formatTime = (time) => {
+    if (!time || isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // ─── Open the player AND start playing immediately ───
+  const handleListenClick = () => {
+    if (!temple?.voiceoverUrl) {
+      toast.info('No audio available for this temple yet.');
+      return;
+    }
+    const audio = ensureAudio();
+    setIsAudioVisible(true);
+    audio?.play().catch(() => {
+      toast.error('Failed to play audio');
+    });
+  };
+
+  // ─── Close audio player ───
+  const handleCloseAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setIsAudioVisible(false);
+  };
 
   const handleLike = async () => {
     setLiked(!liked);
@@ -92,7 +254,7 @@ export default function TempleDetailPage() {
     const text = `🛕 ${temple.title} - ${temple.shortDescription}`;
     
     const shareUrls = {
-      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
       whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`,
     };
     
@@ -129,6 +291,10 @@ export default function TempleDetailPage() {
   const images = (temple.images || []).filter(Boolean);
   const hasImages = images.length > 0;
   const templeTitle = temple.title || 'Temple';
+  const progressPct = duration ? (currentTime / duration) * 100 : 0;
+  const RING_RADIUS = 21;
+  const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+  const ringOffset = RING_CIRCUMFERENCE - (progressPct / 100) * RING_CIRCUMFERENCE;
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#FBF3E7] dark:bg-[#15100C]">
@@ -160,7 +326,7 @@ export default function TempleDetailPage() {
         >
           <Link
             href="/temples"
-            className="group inline-flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-[#241B14]/80 backdrop-blur-sm rounded-full border border-[#F4B400]/20 shadow-sm hover:shadow-md hover:border-[#F4B400]/40 transition-all duration-300"
+            className="group inline-flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-[#241B14]/80 backdrop-blur-sm rounded-full border border-[#F4B400]/20 shadow-sm hover:shadow-md hover:border-[#F4B400]/40 transition-all duration-300 cursor-pointer"
           >
             <FaArrowLeft className="w-4 h-4 text-[#5C4630] dark:text-[#F0E4D3]/60 group-hover:text-[#E8742C] dark:group-hover:text-[#F4B400] transition-colors" />
             <span className="text-sm font-medium text-[#5C4630] dark:text-[#F0E4D3]/80 group-hover:text-[#3D2B1A] dark:group-hover:text-[#F5EAD9] transition-colors">
@@ -201,7 +367,6 @@ export default function TempleDetailPage() {
                 )}
               </div>
 
-              {/* Stats - Views & Likes */}
               <div className="flex items-center gap-3 text-sm text-[#8C7456] dark:text-[#9C8569]">
                 <span className="flex items-center gap-1">
                   <FaEye className="w-3.5 h-3.5" />
@@ -237,10 +402,10 @@ export default function TempleDetailPage() {
             </div>
           </div>
 
-          {/* Images Gallery */}
+          {/* ─── Images Gallery - Reduced height ─── */}
           {hasImages && (
-            <div className="p-6 sm:p-8 border-b border-[#F4B400]/10">
-              <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden">
+            <div className="p-4 sm:p-6 border-b border-[#F4B400]/10">
+              <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden">
                 <img
                   src={images[currentImageIndex]}
                   alt={`${templeTitle} temple image`}
@@ -256,7 +421,7 @@ export default function TempleDetailPage() {
                           idx === currentImageIndex
                             ? 'bg-[#F4B400] w-8'
                             : 'bg-white/50 hover:bg-white/80'
-                        }`}
+                        } cursor-pointer`}
                       />
                     ))}
                   </div>
@@ -265,13 +430,13 @@ export default function TempleDetailPage() {
                   <>
                     <button
                       onClick={() => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer"
                     >
                       ‹
                     </button>
                     <button
                       onClick={() => setCurrentImageIndex((prev) => (prev + 1) % images.length)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer"
                     >
                       ›
                     </button>
@@ -286,25 +451,200 @@ export default function TempleDetailPage() {
             </div>
           )}
 
-          {/* Description & Details */}
+          {/* ─── LISTEN TO TEMPLE ─── */}
+          {temple.voiceoverUrl && (
+            <div className="p-4 sm:p-6 border-b border-[#F4B400]/10">
+              {!isAudioVisible ? (
+                <motion.button
+                  onClick={handleListenClick}
+                  whileTap={{ scale: 0.97 }}
+                  className="relative cursor-pointer inline-flex items-center gap-3 px-6 py-3 rounded-full font-semibold bg-gradient-to-r from-[#E85D04] to-[#F4B400] text-white hover:shadow-xl hover:shadow-[#F4B400]/30 transition-shadow duration-300 hover:scale-105"
+                >
+                  <span
+                    className="absolute inset-0 rounded-full bg-[#F4B400]/50 animate-ping"
+                    style={{ animationDuration: '2.2s' }}
+                    aria-hidden="true"
+                  />
+                  <FaHeadphones className="relative w-5 h-5" />
+                  <span className="relative">
+                    {currentTime > 0 ? 'Resume Listening' : 'Listen to Temple'}
+                  </span>
+                </motion.button>
+              ) : (
+                <AnimatePresence initial={false}>
+                  <motion.div
+                    key="audio-player"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.28, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="relative p-4 sm:p-5 bg-gradient-to-r from-[#E8742C]/10 to-[#F4B400]/10 dark:from-[#E8742C]/20 dark:to-[#F4B400]/20 rounded-2xl border border-[#F4B400]/20 shadow-sm overflow-hidden">
+                      <svg
+                        className="absolute inset-0 w-full h-full opacity-[0.06] pointer-events-none"
+                        preserveAspectRatio="none"
+                        viewBox="0 0 400 100"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M0,50 Q20,10 40,50 T80,50 T120,50 T160,50 T200,50 T240,50 T280,50 T320,50 T360,50 T400,50"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          className="text-[#F4B400]"
+                        />
+                      </svg>
+
+                      <div className="relative flex justify-end mb-2">
+                        <button
+                          onClick={handleCloseAudio}
+                          aria-label="Close audio player and pause"
+                          className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-[#241B14]/50 transition-colors"
+                        >
+                          <FaTimes className="w-4 h-4 text-[#5C4630] dark:text-[#F0E4D3]/50" />
+                        </button>
+                      </div>
+
+                      <div className="relative flex flex-col gap-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <button
+                              onClick={togglePlay}
+                              aria-label={isPlaying ? 'Pause' : 'Play'}
+                              className="relative w-14 h-14 flex-shrink-0 flex items-center justify-center group"
+                            >
+                              <svg className="absolute inset-0 w-14 h-14 -rotate-90" viewBox="0 0 48 48">
+                                <circle
+                                  cx="24"
+                                  cy="24"
+                                  r={RING_RADIUS}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  className="text-[#F4B400]/20"
+                                />
+                                <circle
+                                  cx="24"
+                                  cy="24"
+                                  r={RING_RADIUS}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeDasharray={RING_CIRCUMFERENCE}
+                                  strokeDashoffset={ringOffset}
+                                  className="text-[#F4B400] transition-[stroke-dashoffset] duration-150 ease-linear"
+                                />
+                              </svg>
+                              <span className="relative z-10 w-10 h-10 rounded-full bg-gradient-to-r from-[#E85D04] to-[#F4B400] text-white flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:shadow-[#F4B400]/30 transition-all group-active:scale-95">
+                                {isPlaying ? (
+                                  <FaPause className="w-3.5 h-3.5" />
+                                ) : (
+                                  <FaPlay className="w-3.5 h-3.5 ml-0.5" />
+                                )}
+                              </span>
+                            </button>
+
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-[#3D2B1A] dark:text-[#F5EAD9]/80 truncate">
+                                {temple.title}
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-xs text-[#8C7456] dark:text-[#9C8569]">
+                                  {isPlaying ? 'Playing' : 'Paused'}
+                                </p>
+                                {isPlaying && (
+                                  <div className="flex items-end gap-0.5 h-2.5" aria-hidden="true">
+                                    {[0, 1, 2].map((i) => (
+                                      <motion.span
+                                        key={i}
+                                        className="w-0.5 bg-[#F4B400] rounded-full"
+                                        animate={{ height: [3, 10, 4, 9, 3] }}
+                                        transition={{
+                                          duration: 0.9 + i * 0.15,
+                                          repeat: Infinity,
+                                          ease: 'easeInOut',
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={toggleMute}
+                            aria-label={isMuted ? 'Unmute' : 'Mute'}
+                            className="p-2.5 rounded-full hover:bg-white/60 dark:hover:bg-[#241B14]/50 transition-colors flex-shrink-0"
+                          >
+                            {isMuted ? (
+                              <FaVolumeMute className="w-4 h-4 text-[#5C4630] dark:text-[#F0E4D3]/50" />
+                            ) : (
+                              <FaVolumeUp className="w-4 h-4 text-[#5C4630] dark:text-[#F0E4D3]/50" />
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-mono text-[#8C7456] dark:text-[#9C8569] min-w-[36px]">
+                            {formatTime(currentTime)}
+                          </span>
+                          <div
+                            ref={seekBarRef}
+                            onMouseDown={(e) => {
+                              setIsDragging(true);
+                              seekToClientX(e.clientX);
+                            }}
+                            onTouchStart={(e) => {
+                              setIsDragging(true);
+                              seekToClientX(e.touches[0].clientX);
+                            }}
+                            className="flex-1 h-1.5 bg-[#F4B400]/20 dark:bg-[#F4B400]/10 rounded-full cursor-pointer relative group touch-none"
+                          >
+                            <div
+                              className="h-full bg-gradient-to-r from-[#E85D04] to-[#F4B400] rounded-full"
+                              style={{ width: `${progressPct || 0}%` }}
+                            />
+                            <div
+                              className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-[#F4B400] rounded-full shadow-md transition-transform ${
+                                isDragging ? 'scale-125' : 'scale-100 group-hover:scale-125'
+                              }`}
+                              style={{ left: `calc(${progressPct || 0}% - 6px)` }}
+                            />
+                          </div>
+                          <span className="text-xs font-mono text-[#8C7456] dark:text-[#9C8569] min-w-[36px]">
+                            {formatTime(duration)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              )}
+            </div>
+          )}
+
+          {/* ─── Description & Details ─── */}
           <div className="p-6 sm:p-8">
-            {/* Short Description */}
+            {/* Short Description - Stripped of HTML tags */}
             <div className="mb-6">
               <h2 className="text-lg font-bold text-[#3D2B1A] dark:text-[#F5EAD9] mb-3 flex items-center gap-2">
                 <FaInfoCircle className="w-5 h-5 text-[#E8742C] dark:text-[#FFA45C]" />
                 About this Temple
               </h2>
               <p className="text-[#6B5640] dark:text-[#CBB89E] leading-relaxed">
-                {temple.shortDescription}
+                {stripHtml(temple.shortDescription)}
               </p>
             </div>
 
-            {/* Full Description */}
+            {/* Full Description - Stripped of HTML tags */}
             {temple.fullDescription && (
               <div className="mb-6">
                 <div className="prose prose-lg dark:prose-invert max-w-none">
                   <div className="text-[#6B5640] dark:text-[#CBB89E] leading-relaxed">
-                    {temple.fullDescription}
+                    {stripHtml(temple.fullDescription)}
                   </div>
                 </div>
               </div>
@@ -317,7 +657,7 @@ export default function TempleDetailPage() {
                   ✨ Significance
                 </h4>
                 <p className="text-sm text-[#6B5640] dark:text-[#B8A088]">
-                  {temple.significance}
+                  {stripHtml(temple.significance)}
                 </p>
               </div>
             )}
@@ -347,7 +687,7 @@ export default function TempleDetailPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleLike}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all cursor-pointer ${
                     liked
                       ? 'border-[#E8742C] bg-[#E8742C]/10 text-[#E8742C]'
                       : 'border-[#F4B400]/20 hover:border-[#E8742C]/30 text-[#6B5640] dark:text-[#CBB89E] hover:bg-[#E8742C]/5'
@@ -360,21 +700,25 @@ export default function TempleDetailPage() {
 
               <div className="flex items-center gap-2">
                 <span className="text-xs text-[#8C7456] dark:text-[#9C8569]">Share:</span>
+                {/* Facebook instead of Twitter */}
                 <button
-                  onClick={() => handleShare('twitter')}
-                  className="p-2 rounded-full bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 text-[#1DA1F2] transition-colors"
+                  onClick={() => handleShare('facebook')}
+                  className="p-2 rounded-full bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] transition-colors cursor-pointer"
+                  aria-label="Share on Facebook"
                 >
-                  <FaTwitter className="w-4 h-4" />
+                  <FaFacebook className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleShare('whatsapp')}
-                  className="p-2 rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] transition-colors"
+                  className="p-2 rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] transition-colors cursor-pointer"
+                  aria-label="Share on WhatsApp"
                 >
                   <FaWhatsapp className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleCopy}
-                  className="p-2 rounded-full bg-[#F4B400]/10 hover:bg-[#F4B400]/20 text-[#F4B400] transition-colors"
+                  className="p-2 rounded-full bg-[#F4B400]/10 hover:bg-[#F4B400]/20 text-[#F4B400] transition-colors relative cursor-pointer"
+                  aria-label="Copy link"
                 >
                   {copied ? <FaCheck className="w-4 h-4 text-green-500" /> : <FaCopy className="w-4 h-4" />}
                 </button>
@@ -392,7 +736,7 @@ export default function TempleDetailPage() {
         >
           <Link
             href="/temples"
-            className="inline-flex items-center text-sm text-[#E8742C] dark:text-[#F4B400] hover:underline transition-colors group"
+            className="inline-flex items-center text-sm text-[#E8742C] dark:text-[#F4B400] hover:underline transition-colors group cursor-pointer"
           >
             Browse all temples
             <FaArrowRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
@@ -402,12 +746,3 @@ export default function TempleDetailPage() {
     </div>
   );
 }
-
-// Category names mapping
-const categoryNames = {
-  north: 'North India',
-  south: 'South India',
-  east: 'East India',
-  west: 'West India',
-  central: 'Central India',
-};

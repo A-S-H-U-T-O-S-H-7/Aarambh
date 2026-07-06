@@ -1,4 +1,3 @@
-// lib/services/storyService.js
 import { db, storage } from '@/lib/firebase/client';
 import { 
   collection, 
@@ -122,6 +121,10 @@ export const createStory = async (storyData, imageFiles) => {
       isFeatured: storyData.isFeatured || false,
       publishDate: storyData.publishDate || new Date().toISOString().split('T')[0],
       views: 0,
+      voiceoverUrl: storyData.voiceoverUrl || null,
+      voiceoverStatus: storyData.voiceoverStatus || null,
+      voiceoverGeneratedAt: storyData.voiceoverGeneratedAt || null,
+      voiceoverUpdatedAt: storyData.voiceoverUpdatedAt || null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       publishedAt: storyData.status === 'published' ? serverTimestamp() : null,
@@ -197,6 +200,10 @@ export const updateStory = async (storyId, storyData, imageFiles, existingImages
       status: storyData.status,
       isFeatured: storyData.isFeatured || false,
       publishDate: storyData.publishDate || null,
+      voiceoverUrl: storyData.voiceoverUrl || null,
+      voiceoverStatus: storyData.voiceoverStatus || null,
+      voiceoverGeneratedAt: storyData.voiceoverGeneratedAt || null,
+      voiceoverUpdatedAt: storyData.voiceoverUpdatedAt || null,
       updatedAt: serverTimestamp(),
     };
     
@@ -243,10 +250,6 @@ export const getStories = async (page = 1, searchTerm = '', statusFilter = 'all'
         description: data.description || data.excerpt || '',
         author: data.author || '',
         source: data.source || '',
-        moral: data.moral || data.description || '',
-        description: data.description || data.excerpt || '',
-        author: data.author || '',
-        source: data.source || '',
         moral: data.moral || '',
         category: data.category || '',
         images: data.images || [],
@@ -255,6 +258,10 @@ export const getStories = async (page = 1, searchTerm = '', statusFilter = 'all'
         isFeatured: data.isFeatured || false,
         publishDate: data.publishDate || null,
         views: data.views || 0,
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       });
@@ -328,6 +335,10 @@ export const getStoryById = async (storyId) => {
         isFeatured: data.isFeatured || false,
         publishDate: data.publishDate || null,
         views: data.views || 0,
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         createdAt: data.createdAt?.toDate?.() || null,
         updatedAt: data.updatedAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
@@ -376,6 +387,10 @@ export const getStoryBySlug = async (slug) => {
         isFeatured: data.isFeatured || false,
         publishDate: data.publishDate || null,
         views: data.views || 0,
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         createdAt: data.createdAt?.toDate?.() || null,
         updatedAt: data.updatedAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
@@ -484,6 +499,10 @@ export const getFeaturedStories = async (limitCount = 3) => {
         readingTime: data.readingTime || 5,
         category: data.category || '',
         views: data.views || 0,
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         publishDate: data.publishDate || null,
       });
     });
@@ -525,6 +544,10 @@ export const getLatestStories = async (limitCount = 6) => {
         readingTime: data.readingTime || 5,
         category: data.category || '',
         views: data.views || 0,
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         publishDate: data.publishDate || null,
       });
     });
@@ -561,6 +584,10 @@ export const getStoriesByCategory = async (category, limitCount = 6) => {
         featuredImage: data.featuredImage || null,
         category: data.category || '',
         views: data.views || 0,
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         publishDate: data.publishDate || null,
       });
     });

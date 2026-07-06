@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { FileText, Globe, Hash, Tag, FolderOpen, User, Library, Sparkles } from "lucide-react";
 import RichTextEditor from "../RichTextEditor";
 import AIGenerateButton from "@/components/admin/AIGenerateButton";
+import { FaHeadphones } from "react-icons/fa";
+import StoryVoiceoverGenerator from "../voiceover/StoryVoiceoverGenerator";
+
 
 // Helper function to transliterate Hindi to English
 const transliterateHindi = (text) => {
@@ -88,7 +91,7 @@ const SOURCE_OPTIONS = [
   { value: 'ai', label: 'AI' },
 ];
 
-export default function StoriesForm({ formData, errors, onInputChange, isDark, categories = DEFAULT_CATEGORIES }) {
+export default function StoriesForm({ formData, errors, onInputChange, isDark, categories = DEFAULT_CATEGORIES,storyId = null }) {
   const [tagsInput, setTagsInput] = useState('');
 
   // Initialize tags input from formData
@@ -501,6 +504,43 @@ export default function StoriesForm({ formData, errors, onInputChange, isDark, c
           </div>
         </div>
       </div>
+
+  {/* ─── Card 5: Voiceover Generator ─── */}
+{(storyId || formData.id) && formData.content && (
+  <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
+    isDark 
+      ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
+      : 'border-gray-200 bg-white shadow-md'
+  }`}>
+    <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+      <div className="rounded-lg bg-gradient-to-r from-purple-400 to-pink-400 p-2">
+        <FaHeadphones className="w-4 h-4 text-white" />
+      </div>
+      <h3 className={`text-base font-semibold ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+        AI Voiceover
+      </h3>
+      {formData.voiceoverUrl && (
+        <span className="ml-auto text-xs px-2.5 py-1 rounded-full bg-green-500/20 text-green-600 dark:bg-green-500/30 dark:text-green-400">
+          ✅ Voiceover Ready
+        </span>
+      )}
+    </div>
+
+    <StoryVoiceoverGenerator
+  contentId={storyId || formData.id}
+  contentText={formData.content}
+  existingVoiceoverUrl={formData.voiceoverUrl}
+  isDark={isDark}
+  title={formData.title}
+  shortDescription={formData.description}
+  moral={formData.moral}
+  onVoiceoverGenerated={(url) => {
+    onInputChange('voiceoverUrl', url);
+    onInputChange('voiceoverStatus', url ? 'completed' : null);
+  }}
+/>
+  </div>
+)}
     </div>
   );
 }

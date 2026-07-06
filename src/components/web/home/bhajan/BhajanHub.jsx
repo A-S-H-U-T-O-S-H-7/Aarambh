@@ -1,4 +1,3 @@
-// components/web/home/bhajan/BhajanHub.jsx
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -50,10 +49,8 @@ const getCategoryEmoji = (category) => {
 const getYouTubeEmbedUrl = (url) => {
   if (!url) return null;
   
-  // If it's already an embed URL, return as is
   if (url.includes('/embed/')) return url;
   
-  // Extract video ID
   let videoId = null;
   if (url.includes('youtu.be/')) {
     const match = url.match(/youtu\.be\/([^?&]+)/);
@@ -65,7 +62,7 @@ const getYouTubeEmbedUrl = (url) => {
     const match = url.match(/\/shorts\/([^?&]+)/);
     videoId = match ? match[1] : null;
   } else if (url.includes('youtube.com/embed/')) {
-    return url; // Already an embed URL
+    return url;
   }
   
   return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
@@ -79,17 +76,27 @@ export default function BhajanHub() {
   const [modalBhajan, setModalBhajan] = useState(null);
   const [categories, setCategories] = useState([]);
 
-  // Fetch data
+  // Fetch data - Get latest 15 bhajans in descending order
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Get all bhajans
-        const bhajansResult = await getBhajans(20);
+        // Get bhajans sorted by date (newest first) and limit to 15
+        const bhajansResult = await getBhajans(15);
+        
         if (bhajansResult.success) {
-          setBhajans(bhajansResult.bhajans);
-          // Extract unique categories
-          const uniqueCategories = getUniqueCategories(bhajansResult.bhajans);
+          // Ensure descending order (newest first)
+          const sortedBhajans = [...bhajansResult.bhajans].sort((a, b) => {
+            // Sort by createdAt timestamp (newest first)
+            const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+            const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+            return dateB - dateA;
+          });
+          
+          setBhajans(sortedBhajans);
+          
+          // Extract unique categories from sorted bhajans
+          const uniqueCategories = getUniqueCategories(sortedBhajans);
           setCategories(uniqueCategories);
         }
       } catch (error) {
@@ -107,10 +114,8 @@ export default function BhajanHub() {
     setModalBhajan(bhajan);
     setPlayingId(bhajan.id);
     
-    // Increment view count
     try {
       await incrementMediaView(bhajan.id);
-      // Update local state
       setBhajans(prev => 
         prev.map(b => 
           b.id === bhajan.id 
@@ -144,12 +149,10 @@ export default function BhajanHub() {
   }, [modalBhajan, bhajans]);
 
   const handleLike = useCallback(async (id) => {
-    // Optimistic update
     setLikedBhajans((prev) =>
       prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
     );
     
-    // Update local state
     setBhajans(prev => 
       prev.map(b => 
         b.id === id 
@@ -158,12 +161,10 @@ export default function BhajanHub() {
       )
     );
 
-    // API call
     try {
       await toggleMediaLike(id);
     } catch (error) {
       console.error('Error toggling like:', error);
-      // Revert on error
       setLikedBhajans((prev) =>
         prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
       );
@@ -227,7 +228,7 @@ export default function BhajanHub() {
             <span className="bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent">Hub</span>
           </h2>
           <p className="mt-1.5 text-sm text-brown-500 dark:text-cream-50/50 max-w-sm">
-            Devotional music to connect with the divine.
+            Latest {bhajans.length} devotional melodies
           </p>
         </motion.div>
 

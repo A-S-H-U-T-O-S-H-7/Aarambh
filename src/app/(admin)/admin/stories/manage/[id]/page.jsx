@@ -56,6 +56,8 @@ export default function ManageStoryPage() {
     manualSlug: false,
     imageFiles: [],
     existingImages: [],
+    voiceoverUrl: '',  
+  voiceoverStatus: '', 
   });
 
   const [errors, setErrors] = useState({});
@@ -90,6 +92,8 @@ export default function ManageStoryPage() {
               manualSlug: true,
               imageFiles: [],
               existingImages: story.images || [],
+              voiceoverUrl: story.voiceoverUrl || '',  
+              voiceoverStatus: story.voiceoverStatus || '', 
             });
             setOldStoryData(story);
           } else {
@@ -124,73 +128,75 @@ export default function ManageStoryPage() {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      toast.error("Please fix validation errors");
-      return;
-    }
+  if (!validateForm()) {
+    toast.error("Please fix validation errors");
+    return;
+  }
 
-    setIsLoading(true);
-    try {
-      const storyData = {
-        title: formData.title,
-        slug: formData.slug || generateSlug(formData.title),
-        content: formData.content,
-        excerpt: formData.excerpt || formData.description,
-        description: formData.description || formData.excerpt,
-        author: formData.author,
-        source: formData.source,
-        moral: formData.moral,
-        category: formData.category,
-        tags: formData.tags,
-        status: formData.status,
-        isFeatured: formData.isFeatured,
-        publishDate: formData.publishDate,
-        metatitle: formData.metatitle,
-        metadesc: formData.metadesc,
-        metakeywords: formData.metakeywords,
-      };
+  setIsLoading(true);
+  try {
+    const storyData = {
+      title: formData.title,
+      slug: formData.slug || generateSlug(formData.title),
+      content: formData.content,
+      excerpt: formData.excerpt || formData.description,
+      description: formData.description || formData.excerpt,
+      author: formData.author,
+      source: formData.source,
+      moral: formData.moral,
+      category: formData.category,
+      tags: formData.tags,
+      status: formData.status,
+      isFeatured: formData.isFeatured,
+      publishDate: formData.publishDate,
+      metatitle: formData.metatitle,
+      metadesc: formData.metadesc,
+      metakeywords: formData.metakeywords,
+      voiceoverUrl: formData.voiceoverUrl || null,
+      voiceoverStatus: formData.voiceoverStatus || null,
+    };
 
-      let result;
-      if (isEditMode) {
-        result = await updateStory(storyId, storyData, formData.imageFiles, formData.existingImages);
-        if (result.success) {
-          await log({
-            action: 'UPDATE',
-            entityType: 'story',
-            entityId: storyId,
-            entityTitle: formData.title,
-            oldData: oldStoryData,
-            newData: storyData,
-            details: `Updated story: ${formData.title}`
-          });
-        }
-      } else {
-        result = await createStory(storyData, formData.imageFiles);
-        if (result.success) {
-          await log({
-            action: 'CREATE',
-            entityType: 'story',
-            entityId: result.id,
-            entityTitle: formData.title,
-            newData: storyData,
-            details: `Created story: ${formData.title}`
-          });
-        }
-      }
-
+    let result;
+    if (isEditMode) {
+      result = await updateStory(storyId, storyData, formData.imageFiles, formData.existingImages);
       if (result.success) {
-        toast.success(`Story ${isEditMode ? "updated" : "created"} successfully!`);
-        router.push("/admin/stories");
-      } else {
-        toast.error(result.error || "Failed to save story");
+        await log({
+          action: 'UPDATE',
+          entityType: 'story',
+          entityId: storyId,
+          entityTitle: formData.title,
+          oldData: oldStoryData,
+          newData: storyData,
+          details: `Updated story: ${formData.title}`
+        });
       }
-    } catch (error) {
-      console.error("Error saving story:", error);
-      toast.error("Failed to save story");
-    } finally {
-      setIsLoading(false);
+    } else {
+      result = await createStory(storyData, formData.imageFiles);
+      if (result.success) {
+        await log({
+          action: 'CREATE',
+          entityType: 'story',
+          entityId: result.id,
+          entityTitle: formData.title,
+          newData: storyData,
+          details: `Created story: ${formData.title}`
+        });
+      }
     }
-  };
+
+    if (result.success) {
+      toast.success(`Story ${isEditMode ? "updated" : "created"} successfully!`);
+      router.push("/admin/stories");
+    } else {
+      toast.error(result.error || "Failed to save story");
+    }
+  } catch (error) {
+    console.error("Error saving story:", error);
+    toast.error("Failed to save story");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   if (isFetching) {
     return (
@@ -233,6 +239,7 @@ export default function ManageStoryPage() {
             onInputChange={handleInputChange}
             isDark={isDark}
             categories={CATEGORIES}
+            storyId={isEditMode ? storyId : null}
           />
         </div>
         <div>

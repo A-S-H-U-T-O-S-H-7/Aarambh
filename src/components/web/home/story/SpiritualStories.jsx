@@ -60,7 +60,7 @@ function SideStoryCard({ story, onLike, isLiked, index }) {
                  hover:border-gold/70 transition-all duration-300"
     >
       <div className="flex gap-3">
-        {/* Thumbnail - Fixed cropping */}
+        {/* Thumbnail */}
         <Link href={`/stories/${story.slug || story.id}`} className="flex-shrink-0">
           <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-saffron/20 to-gold/20 border border-gold/10">
             <Image
@@ -98,7 +98,7 @@ function SideStoryCard({ story, onLike, isLiked, index }) {
         </div>
       </div>
 
-      {/* Bottom row: Duration, Author, Like - all in one line */}
+      {/* Bottom row: Duration, Author, Like */}
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-gold/10 dark:border-gold/10">
         <div className="flex items-center gap-2 text-[10px] text-brown-400 dark:text-cream-50/40">
           <FaClock className="w-2.5 h-2.5 flex-shrink-0" />
@@ -112,7 +112,6 @@ function SideStoryCard({ story, onLike, isLiked, index }) {
           )}
         </div>
 
-        {/* Like Button - Right side */}
         <button
           onClick={() => onLike?.(story.id)}
           className="p-1.5 rounded-full hover:bg-saffron/10 dark:hover:bg-saffron/20 transition-colors flex-shrink-0"
@@ -144,6 +143,17 @@ export default function SpiritualStories() {
           const feat = (f.success && f.stories) || [];
           const latest = (l.success && l.stories) || [];
 
+          // Sort latest stories by publishDate (newest first)
+          const sortedLatest = [...latest].sort((a, b) => {
+            const dateA = a.publishDate ? new Date(a.publishDate) : new Date(0);
+            const dateB = b.publishDate ? new Date(b.publishDate) : new Date(0);
+            return dateB - dateA; // Descending order (newest first)
+          });
+
+          // Filter out featured stories and take only the latest 3
+          const nonFeatured = sortedLatest.filter(s => !s.isFeatured);
+          const latestThree = nonFeatured.slice(0, 3);
+
           const normalize = (s) => ({
             id: s.id,
             slug: s.slug || slugify(s.title) || s.id,
@@ -159,7 +169,7 @@ export default function SpiritualStories() {
           });
 
           setFeaturedStories(feat.map(normalize));
-          setSidebarStories(latest.filter(s => !s.isFeatured).slice(0, 4).map(normalize));
+          setSidebarStories(latestThree.map(normalize));
         }
       } catch (err) {
         console.error(err);
@@ -237,7 +247,7 @@ export default function SpiritualStories() {
               </span>
             </div>
 
-            {/* Featured Carousel - Height increased */}
+            {/* Featured Carousel */}
             <div className="h-[420px] md:h-[480px] lg:h-[520px]">
               <StoryFeaturedCarousel stories={featuredStories} />
             </div>
@@ -255,7 +265,7 @@ export default function SpiritualStories() {
               <div className="flex items-center gap-2">
                 <FaBookOpen className="w-4 h-4 text-gold" />
                 <span className="text-sm font-semibold text-brown-800 dark:text-cream-50">
-                  More Stories
+                  Latest Stories
                 </span>
               </div>
               <Link
@@ -266,18 +276,24 @@ export default function SpiritualStories() {
               </Link>
             </div>
 
-            {/* Stacked cards */}
-            <div className="flex flex-col gap-3">
-              {sidebarStories.map((story, idx) => (
-                <SideStoryCard
-                  key={story.id}
-                  story={story}
-                  index={idx}
-                  onLike={handleLike}
-                  isLiked={isLiked(story.id)}
-                />
-              ))}
-            </div>
+            {/* Stacked cards - Only 3 latest stories */}
+            {sidebarStories.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {sidebarStories.map((story, idx) => (
+                  <SideStoryCard
+                    key={story.id}
+                    story={story}
+                    index={idx}
+                    onLike={handleLike}
+                    isLiked={isLiked(story.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 text-center text-sm text-brown-500 dark:text-cream-50/50 bg-white/50 dark:bg-brown-800/50 rounded-xl border border-gold/10">
+                No stories available yet.
+              </div>
+            )}
 
             {/* CTA */}
             <div className="mt-5 pt-4 border-t border-gold/10 dark:border-gold/10">

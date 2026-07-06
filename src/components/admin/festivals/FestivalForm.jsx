@@ -8,8 +8,10 @@ import {
   FolderOpen,
   Calendar,
 } from 'lucide-react';
+import { FaHeadphones } from "react-icons/fa";
 import RichTextEditor from '../RichTextEditor';
 import AIGenerateButton from '@/components/admin/AIGenerateButton';
+import FestivalVoiceoverGenerator from '../voiceover/FestivalVoiceoverGenerator';
 
 // ─── SLUG GENERATION WITH TRANSLITERATION ───
 const transliterateHindi = (text) => {
@@ -90,7 +92,7 @@ const EMOJI_OPTIONS = [
 ];
 
 // ─── COMPONENT ───
-export default function FestivalForm({ formData, errors, onInputChange, isDark }) {
+export default function FestivalForm({ formData, errors, onInputChange, isDark,festivalId = null }) {
   const handleTitleChange = (value) => {
     onInputChange('title', value);
     if (!formData.manualSlug) {
@@ -444,6 +446,44 @@ export default function FestivalForm({ formData, errors, onInputChange, isDark }
           </div>
         </div>
       </div>
+
+      {/* ─── Card 4: AI Voiceover ─── */}
+      {(festivalId || formData.id)  && formData.fullDescription && (
+        <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl ${
+          isDark 
+            ? 'border-gray-700 bg-gray-800/90 shadow-lg' 
+            : 'border-gray-200 bg-white shadow-md'
+        }`}>
+          <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+            <div className="rounded-lg bg-gradient-to-r from-purple-400 to-pink-400 p-2">
+              <FaHeadphones className="w-4 h-4 text-white" />
+            </div>
+            <h3 className={`text-base font-semibold ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+              AI Voiceover
+            </h3>
+            {formData.voiceoverUrl && (
+              <span className="ml-auto text-xs px-2.5 py-1 rounded-full bg-green-500/20 text-green-600 dark:bg-green-500/30 dark:text-green-400">
+                ✅ Voiceover Ready
+              </span>
+            )}
+          </div>
+
+          <FestivalVoiceoverGenerator
+  contentId={(festivalId || formData.id) }
+  contentText={formData.fullDescription}
+  existingVoiceoverUrl={formData.voiceoverUrl}
+  isDark={isDark}
+  // ─── Festival-specific fields ───
+  title={formData.title}
+  hindiName={formData.nameHindi}
+  shortDescription={formData.description}
+  onVoiceoverGenerated={(url) => {
+    onInputChange('voiceoverUrl', url);
+    onInputChange('voiceoverStatus', url ? 'completed' : null);
+  }}
+/>
+        </div>
+      )}
     </div>
   );
 }

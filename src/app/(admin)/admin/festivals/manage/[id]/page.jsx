@@ -45,6 +45,8 @@ export default function ManageFestivalPage() {
     metatitle: '',
     metadesc: '',
     metakeywords: '',
+    voiceoverUrl: '',
+  voiceoverStatus: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -81,6 +83,8 @@ export default function ManageFestivalPage() {
               metatitle: festival.metatitle || '',
               metadesc: festival.metadesc || '',
               metakeywords: festival.metakeywords || '',
+              voiceoverUrl: festival.voiceoverUrl || '',
+              voiceoverStatus: festival.voiceoverStatus || '',
             });
             setOldFestivalData(festival);
           } else {
@@ -143,6 +147,8 @@ export default function ManageFestivalPage() {
         metatitle: formData.metatitle,
         metadesc: formData.metadesc,
         metakeywords: formData.metakeywords,
+        voiceoverUrl: formData.voiceoverUrl || null,
+        voiceoverStatus: formData.voiceoverStatus || null,
       };
 
       let result;
@@ -221,6 +227,7 @@ export default function ManageFestivalPage() {
             errors={errors}
             onInputChange={handleInputChange}
             isDark={isDark}
+            festivalId={isEditMode ? festivalId : null}
           />
         </div>
         <div>

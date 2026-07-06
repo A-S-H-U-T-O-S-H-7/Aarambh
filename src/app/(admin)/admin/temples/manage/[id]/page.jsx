@@ -13,7 +13,7 @@ import TempleSidebar from '@/components/admin/temples/TempleSidebar';
 import { getTempleById, createTemple, updateTemple, generateSlug } from '@/lib/services/templeService';
 import { ActivityActions, ActivityEntityTypes } from '@/lib/services/activityLogService';
 
-export default function ManageTemplePage() {
+export default function ManageTemplePage() { 
   const { theme } = useThemeStore();
   const { admin } = useAdminAuthStore();
   const { log } = useActivityLogger();
@@ -42,6 +42,8 @@ export default function ManageTemplePage() {
     metatitle: '',
     metadesc: '',
     metakeywords: '',
+    voiceoverUrl: '',
+  voiceoverStatus: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -75,6 +77,8 @@ export default function ManageTemplePage() {
               metatitle: temple.metatitle || '',
               metadesc: temple.metadesc || '',
               metakeywords: temple.metakeywords || '',
+              voiceoverUrl: temple.voiceoverUrl || '',
+              voiceoverStatus: temple.voiceoverStatus || '',
             });
             setOldTempleData(temple);
           } else {
@@ -134,6 +138,8 @@ export default function ManageTemplePage() {
         metatitle: formData.metatitle,
         metadesc: formData.metadesc,
         metakeywords: formData.metakeywords,
+        voiceoverUrl: formData.voiceoverUrl || null,
+        voiceoverStatus: formData.voiceoverStatus || null,
       };
 
       let result;
@@ -212,6 +218,7 @@ export default function ManageTemplePage() {
             errors={errors}
             onInputChange={handleInputChange}
             isDark={isDark}
+            templeId={isEditMode ? templeId : null} 
           />
         </div>
         <div>

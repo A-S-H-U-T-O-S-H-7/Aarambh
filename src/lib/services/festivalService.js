@@ -1,4 +1,3 @@
-// lib/services/festivalService.js
 import { db, storage } from '@/lib/firebase/client';
 import { 
   collection, 
@@ -7,7 +6,7 @@ import {
   getDoc, 
   addDoc, 
   updateDoc, 
-  deleteDoc,
+  deleteDoc, 
   query,
   where,
   orderBy,
@@ -145,8 +144,8 @@ export const createFestival = async (festivalData, imageFiles) => {
       nameHindi: festivalData.nameHindi || '',
       description: festivalData.description || '',
       fullDescription: festivalData.fullDescription || '',
-      date: festivalData.date, // Store original date (YYYY-MM-DD)
-      nextDate: nextDate, // Store calculated next occurrence
+      date: festivalData.date,
+      nextDate: nextDate,
       category: festivalData.category || '',
       significance: festivalData.significance || '',
       traditions: festivalData.traditions || [],
@@ -163,6 +162,12 @@ export const createFestival = async (festivalData, imageFiles) => {
       metatitle: festivalData.metatitle || festivalData.title,
       metadesc: festivalData.metadesc || festivalData.description?.substring(0, 160) || '',
       metakeywords: festivalData.metakeywords || '',
+      // ─── VOICEOVER FIELDS ───
+      voiceoverUrl: festivalData.voiceoverUrl || null,
+      voiceoverStatus: festivalData.voiceoverStatus || null,
+      voiceoverGeneratedAt: festivalData.voiceoverGeneratedAt || null,
+      voiceoverUpdatedAt: festivalData.voiceoverUpdatedAt || null,
+      // ─── TIMESTAMPS ───
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       publishedAt: festivalData.status === 'published' ? serverTimestamp() : null,
@@ -214,6 +219,12 @@ export const updateFestival = async (festivalId, festivalData, imageFiles, exist
       metatitle: festivalData.metatitle || festivalData.title,
       metadesc: festivalData.metadesc || festivalData.description?.substring(0, 160) || '',
       metakeywords: festivalData.metakeywords || '',
+      // ─── VOICEOVER FIELDS ───
+      voiceoverUrl: festivalData.voiceoverUrl || null,
+      voiceoverStatus: festivalData.voiceoverStatus || null,
+      voiceoverGeneratedAt: festivalData.voiceoverGeneratedAt || null,
+      voiceoverUpdatedAt: festivalData.voiceoverUpdatedAt || null,
+      // ─── TIMESTAMP ───
       updatedAt: serverTimestamp(),
     };
     
@@ -265,6 +276,11 @@ export const getFestivals = async (page = 1, searchTerm = '', statusFilter = 'al
         status: data.status || 'draft',
         views: data.views || 0,
         likes: data.likes || 0,
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       });
@@ -342,6 +358,11 @@ export const getFestivalById = async (festivalId) => {
         metatitle: data.metatitle || '',
         metadesc: data.metadesc || '',
         metakeywords: data.metakeywords || '',
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         createdAt: data.createdAt?.toDate?.() || null,
         updatedAt: data.updatedAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
@@ -393,6 +414,11 @@ export const getFestivalBySlug = async (slug) => {
         metatitle: data.metatitle || '',
         metadesc: data.metadesc || '',
         metakeywords: data.metakeywords || '',
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       }
     };
@@ -459,6 +485,11 @@ export const getFeaturedFestivals = async (limitCount = 6) => {
         colors: data.colors || [],
         views: data.views || 0,
         likes: data.likes || 0,
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
       });
     });
     
@@ -505,6 +536,11 @@ export const getUpcomingFestivals = async (limitCount = 10) => {
         colors: data.colors || [],
         views: data.views || 0,
         likes: data.likes || 0,
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
       });
     });
     

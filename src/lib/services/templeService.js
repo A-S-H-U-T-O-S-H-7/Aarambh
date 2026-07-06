@@ -1,4 +1,3 @@
-// lib/services/templeService.js
 import { db, storage } from '@/lib/firebase/client';
 import { 
   collection, 
@@ -79,7 +78,6 @@ export const createTemple = async (templeData, imageFiles) => {
     const slug = templeData.slug || generateSlug(templeData.title);
     const fileName = generateSlug(templeData.title);
     
-    // Upload images
     let imageUrls = [];
     if (imageFiles && imageFiles.length > 0) {
       imageUrls = await uploadMultipleImages(imageFiles, fileName);
@@ -105,6 +103,12 @@ export const createTemple = async (templeData, imageFiles) => {
       metatitle: templeData.metatitle || templeData.title,
       metadesc: templeData.metadesc || templeData.shortDescription?.substring(0, 160) || '',
       metakeywords: templeData.metakeywords || '',
+      // ─── VOICEOVER FIELDS ───
+      voiceoverUrl: templeData.voiceoverUrl || null,
+      voiceoverStatus: templeData.voiceoverStatus || null,
+      voiceoverGeneratedAt: templeData.voiceoverGeneratedAt || null,
+      voiceoverUpdatedAt: templeData.voiceoverUpdatedAt || null,
+      // ─── TIMESTAMPS ───
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       publishedAt: templeData.status === 'published' ? serverTimestamp() : null,
@@ -124,7 +128,6 @@ export const updateTemple = async (templeId, templeData, imageFiles, existingIma
     const templeRef = doc(db, TEMPLES_COLLECTION, templeId);
     const fileName = generateSlug(templeData.title);
     
-    // Handle images
     let imageUrls = existingImages || [];
     if (imageFiles && imageFiles.length > 0) {
       const newImages = await uploadMultipleImages(imageFiles, fileName);
@@ -149,6 +152,12 @@ export const updateTemple = async (templeId, templeData, imageFiles, existingIma
       metatitle: templeData.metatitle || templeData.title,
       metadesc: templeData.metadesc || templeData.shortDescription?.substring(0, 160) || '',
       metakeywords: templeData.metakeywords || '',
+      // ─── VOICEOVER FIELDS ───
+      voiceoverUrl: templeData.voiceoverUrl || null,
+      voiceoverStatus: templeData.voiceoverStatus || null,
+      voiceoverGeneratedAt: templeData.voiceoverGeneratedAt || null,
+      voiceoverUpdatedAt: templeData.voiceoverUpdatedAt || null,
+      // ─── TIMESTAMP ───
       updatedAt: serverTimestamp(),
     };
     
@@ -200,12 +209,16 @@ export const getTemples = async (page = 1, searchTerm = '', statusFilter = 'all'
         featured: data.featured || false,
         views: data.views || 0,
         likes: data.likes || 0,
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       });
     });
     
-    // Apply featured filter
     if (featuredFilter !== 'all') {
       if (featuredFilter === 'featured') {
         temples = temples.filter(item => item.featured === true);
@@ -274,6 +287,11 @@ export const getTempleById = async (templeId) => {
         metatitle: data.metatitle || '',
         metadesc: data.metadesc || '',
         metakeywords: data.metakeywords || '',
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         createdAt: data.createdAt?.toDate?.() || null,
         updatedAt: data.updatedAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
@@ -318,6 +336,11 @@ export const getTempleBySlug = async (slug) => {
         featured: data.featured || false,
         views: data.views || 0,
         likes: data.likes || 0,
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       }
     };
@@ -331,7 +354,6 @@ export const getTempleBySlug = async (slug) => {
 
 export const deleteTemple = async (templeId, imageUrls) => {
   try {
-    // Delete images from storage
     if (imageUrls && imageUrls.length > 0) {
       await deleteMultipleImages(imageUrls);
     }
@@ -416,6 +438,11 @@ export const getFeaturedTemples = async (limitCount = 6) => {
         featured: data.featured || false,
         views: data.views || 0,
         likes: data.likes || 0,
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
       });
     });
     
@@ -455,6 +482,11 @@ export const getPublishedTemples = async (limitCount = 30) => {
         featured: data.featured || false,
         views: data.views || 0,
         likes: data.likes || 0,
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
       });
     });
     
@@ -493,6 +525,11 @@ export const getTemplesByCategory = async (category, limitCount = 20) => {
         images: data.images || [],
         views: data.views || 0,
         likes: data.likes || 0,
+        // ─── VOICEOVER FIELDS ───
+        voiceoverUrl: data.voiceoverUrl || null,
+        voiceoverStatus: data.voiceoverStatus || null,
+        voiceoverGeneratedAt: data.voiceoverGeneratedAt || null,
+        voiceoverUpdatedAt: data.voiceoverUpdatedAt || null,
       });
     });
     
