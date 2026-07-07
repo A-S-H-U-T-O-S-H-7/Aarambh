@@ -1,10 +1,10 @@
-// components/home/FestivalHub.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaStar } from 'react-icons/fa';
 import { GiSparkles } from 'react-icons/gi';
+import Image from 'next/image';
 import FestivalCarousel from './FestivalCarousel';
 import { getFeaturedFestivals } from '@/lib/services/festivalService';
 
@@ -51,6 +51,55 @@ export default function FestivalHub() {
 
   return (
     <section className="py-6 md:py-8 relative overflow-hidden bg-[#FBF3E7] dark:bg-[#15100C]">
+      {/* ─── Mandala Decorations ─── */}
+      {/* Top Left */}
+      <div className="absolute -top-16 -left-16 w-48 h-48 md:w-64 md:h-64 opacity-70 dark:opacity-90 pointer-events-none select-none z-0">
+        <Image
+          src="/mandala3.png"
+          alt="Mandala"
+          width={256}
+          height={256}
+          className="w-full h-full object-contain rotate-12"
+          priority
+        />
+      </div>
+
+      {/* Top Right */}
+      <div className="absolute -top-16 -right-16 w-48 h-48 md:w-64 md:h-64 opacity-70 dark:opacity-90 pointer-events-none select-none z-0 scale-x-[-1]">
+        <Image
+          src="/mandala3.png"
+          alt="Mandala"
+          width={256}
+          height={256}
+          className="w-full h-full object-contain -rotate-12"
+          priority
+        />
+      </div>
+
+      {/* Bottom Left */}
+      <div className="absolute -bottom-18 -left-18 w-48 h-48 md:w-64 md:h-64 opacity-70 dark:opacity-90 pointer-events-none select-none z-0 scale-y-[-1]">
+        <Image
+          src="/mandala3.png"
+          alt="Mandala"
+          width={256}
+          height={256}
+          className="w-full h-full object-contain -rotate-12"
+          priority
+        />
+      </div>
+
+      {/* Bottom Right */}
+      <div className="absolute -bottom-18 -right-18 w-48 h-48 md:w-64 md:h-64 opacity-70 dark:opacity-90 pointer-events-none select-none z-0 scale-x-[-1] scale-y-[-1]">
+        <Image
+          src="/mandala3.png"
+          alt="Mandala"
+          width={256}
+          height={256}
+          className="w-full h-full object-contain rotate-12"
+          priority
+        />
+      </div>
+
       {/* Background gradients */}
       <div
         className="absolute inset-0 opacity-100 dark:opacity-0 transition-opacity"

@@ -34,7 +34,7 @@ const DEFAULT_VALUES = {
   headingLine2: 'with Divine Wisdom',
   tagline: 'आरम्भः सर्वकार्येषु मङ्गलाचरणम्',
   ctaText: 'Explore Now',
-  ctaLink: '#explore',
+  ctaLink: '/stories',
   desktopImage: '/Herocopy1.png',
   mobileImage: '/MobHerobanner3.png',
   mantra: 'ॐ नमः शिवाय',
@@ -85,6 +85,7 @@ export default function HeroSection() {
   const [isMobile, setIsMobile] = useState(false);
   const [content, setContent] = useState(DEFAULT_VALUES);
   const [loading, setLoading] = useState(true);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
   // ============ FETCH DYNAMIC CONTENT ============
   useEffect(() => {
@@ -101,7 +102,6 @@ export default function HeroSection() {
         setContent(resolveHeroContent(heroData, mantraData, songData));
       } catch (error) {
         console.error('Error fetching hero content:', error);
-        // Keep default values
       } finally {
         setLoading(false);
       }
@@ -141,20 +141,38 @@ export default function HeroSection() {
     }
   };
 
-  // Auto-play on load (with user interaction requirement)
+  // ============ AUTO-PLAY ON USER INTERACTION (LIMITED TO HERO) ============
   useEffect(() => {
     if (!content.songAutoPlay) return;
 
-    const playAudio = () => {
-      if (audioRef.current && !isPlaying && content.songUrl) {
-        audioRef.current.play().catch(() => {});
-        setIsPlaying(true);
+    // Create a scoped click listener that only triggers on the hero section
+    const handleHeroClick = (e) => {
+      // Check if click target is within the hero section
+      const heroElement = document.querySelector('.hero-section-container');
+      if (!heroElement) return;
+      
+      // If click is inside hero section and not on a button/link
+      if (heroElement.contains(e.target) && !e.target.closest('button') && !e.target.closest('a')) {
+        if (audioRef.current && !isPlaying && content.songUrl && !hasUserInteracted) {
+          audioRef.current.play()
+            .then(() => {
+              setIsPlaying(true);
+              setHasUserInteracted(true);
+            })
+            .catch(() => {});
+          // Remove listener after first interaction
+          document.removeEventListener('click', handleHeroClick);
+        }
       }
-      document.removeEventListener('click', playAudio);
     };
-    document.addEventListener('click', playAudio);
-    return () => document.removeEventListener('click', playAudio);
-  }, [content.songUrl, content.songAutoPlay]);
+
+    // Add listener only once
+    document.addEventListener('click', handleHeroClick);
+
+    return () => {
+      document.removeEventListener('click', handleHeroClick);
+    };
+  }, [content.songUrl, content.songAutoPlay, isPlaying, hasUserInteracted]);
 
   // ============ PARTICLE CANVAS EFFECT ============
   useEffect(() => {
@@ -283,27 +301,27 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative flex items-center overflow-hidden"
+      className="hero-section-container relative flex items-center overflow-hidden"
       style={{ height: isMobile ? 'clamp(520px, 75vh, 600px)' : 'clamp(480px, 68vh, 680px)' }}
     >
       {/* ── Hidden Audio Player ── */}
-<audio
-  key={songUrl}
-  ref={audioRef}
-  src={songUrl}
-  loop
-  preload="auto"
-  onLoadedData={() => {
-    setIsLoaded(true);
-    setIsPlaying(false);
-  }}
-  onError={(e) => {
-    console.error('Audio load error:', songUrl);
-    if (e.target.src !== window.location.origin + '/music.mpeg' && !e.target.src.endsWith('/music.mpeg')) {
-      e.target.src = '/music.mpeg';
-    }
-  }}
-/>
+      <audio
+        key={songUrl}
+        ref={audioRef}
+        src={songUrl}
+        loop
+        preload="auto"
+        onLoadedData={() => {
+          setIsLoaded(true);
+          setIsPlaying(false);
+        }}
+        onError={(e) => {
+          console.error('Audio load error:', songUrl);
+          if (e.target.src !== window.location.origin + '/music.mpeg' && !e.target.src.endsWith('/music.mpeg')) {
+            e.target.src = '/music.mpeg';
+          }
+        }}
+      />
 
       {/* ── Background image ── */}
       <div className="absolute inset-0 z-0">
@@ -366,35 +384,41 @@ export default function HeroSection() {
         ))}
       </div>
 
-      {/* ── Audio Player Controls ── */}
+      {/* ── Audio Player Controls - CLAYMORPHISM DESIGN ── */}
       <div className={`absolute ${isMobile ? 'top-3 right-3' : 'top-4 right-4'} z-20 flex items-center gap-2`}>
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/30 backdrop-blur-sm border border-white/10">
+        {/* Music Status Badge - Claymorphism */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_3px_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.2)]">
           <Music className="w-3 h-3 text-gold animate-pulse" />
           <span className="text-[10px] text-white/70 font-medium">Divine Music</span>
         </div>
 
+        {/* Play/Pause Button - Claymorphism with 3D effect */}
         <button
           onClick={togglePlay}
-          className={`${isMobile ? 'p-2' : 'p-2.5'} rounded-full bg-black/40 backdrop-blur-sm border border-white/20 hover:bg-black/60 transition-all hover:scale-105 active:scale-95`}
+          className={`${isMobile ? 'p-2' : 'p-2.5'} rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-[inset_0_1px_3px_rgba(255,255,255,0.15),0_8px_32px_rgba(0,0,0,0.25)] hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95 group`}
           aria-label={isPlaying ? 'Pause music' : 'Play music'}
         >
           {isPlaying ? (
-            <Pause className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white`} />
+            <Pause className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white drop-shadow-[0_2px_8px_rgba(255,215,0,0.3)]`} />
           ) : (
-            <Play className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white ml-0.5`} />
+            <Play className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white ml-0.5 drop-shadow-[0_2px_8px_rgba(255,215,0,0.3)]`} />
           )}
+          {/* Glow ring on hover */}
+          <span className="absolute inset-0 rounded-full bg-gradient-to-r from-saffron/20 to-gold/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md" />
         </button>
 
+        {/* Mute/Unmute Button - Claymorphism */}
         <button
           onClick={toggleMute}
-          className={`${isMobile ? 'p-2' : 'p-2.5'} rounded-full bg-black/40 backdrop-blur-sm border border-white/20 hover:bg-black/60 transition-all hover:scale-105 active:scale-95`}
+          className={`${isMobile ? 'p-2' : 'p-2.5'} rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-[inset_0_1px_3px_rgba(255,255,255,0.15),0_8px_32px_rgba(0,0,0,0.25)] hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95 group`}
           aria-label={isMuted ? 'Unmute music' : 'Mute music'}
         >
           {isMuted ? (
-            <VolumeX className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white/50`} />
+            <VolumeX className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white/50 drop-shadow-[0_2px_8px_rgba(255,255,255,0.1)]`} />
           ) : (
-            <Volume2 className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white`} />
+            <Volume2 className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white drop-shadow-[0_2px_8px_rgba(255,215,0,0.3)]`} />
           )}
+          <span className="absolute inset-0 rounded-full bg-gradient-to-r from-saffron/20 to-gold/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md" />
         </button>
       </div>
 
@@ -459,7 +483,7 @@ export default function HeroSection() {
             </p>
           </motion.div>
 
-          {/* Feature chips - Hide Panchang on mobile */}
+          {/* Feature chips */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
