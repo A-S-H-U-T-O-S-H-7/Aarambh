@@ -55,6 +55,17 @@ const teamMembers = [
   },
   {
     id: 2,
+    name: "Reva Solanki",
+    role: "Manager",
+    initials: "RS",
+    icon: FaCog,
+    tag: "OPS",
+    gradient: "from-indigo-500 to-blue-500",
+    color: "#4F46E5",
+    quote: "Managing divine operations with grace",
+  },
+  {
+    id: 3,
     name: "Manbir Singh Negi",
     role: "Sr. Cameraman & Video Editor",
     initials: "MN",
@@ -65,7 +76,7 @@ const teamMembers = [
     quote: "Visual stories that touch the soul",
   },
   {
-    id: 3,
+    id: 4,
     name: "Deepak Kumar",
     role: "Animation & Video Editor",
     initials: "DK",
@@ -76,7 +87,7 @@ const teamMembers = [
     quote: "Animating divine stories",
   },
   {
-    id: 4,
+    id: 5,
     name: "Manish Batra",
     role: "Graphic Designer",
     initials: "MB",
@@ -87,7 +98,7 @@ const teamMembers = [
     quote: "Designing spirituality with color",
   },
   {
-    id: 5,
+    id: 6,
     name: "Lal Yadav",
     role: "SEO Specialist",
     initials: "LY",
@@ -98,7 +109,7 @@ const teamMembers = [
     quote: "Spreading divine content to the world",
   },
   {
-    id: 6,
+    id: 7,
     name: "Ankita Mohanty",
     role: "Social Media Handler",
     initials: "AM",
@@ -108,17 +119,7 @@ const teamMembers = [
     color: "#DB2777",
     quote: "Connecting souls through social media",
   },
-  {
-    id: 7,
-    name: "Reva Solanki",
-    role: "Manager",
-    initials: "RS",
-    icon: FaCog,
-    tag: "OPS",
-    gradient: "from-indigo-500 to-blue-500",
-    color: "#4F46E5",
-    quote: "Managing divine operations with grace",
-  },
+  
   {
     id: 8,
     name: "Rajneesh Verma",
@@ -293,7 +294,18 @@ function TeamCard({ member, index }) {
 
 export default function AboutPage() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef(null);
+
+  // ─── MOBILE CHECK ───
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -303,30 +315,44 @@ export default function AboutPage() {
   const y = useTransform(scrollYProgress, [0, 1], [0, 100]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
+  // ─── Select image based on device ───
+  const heroImage = isMobile ? '/aboutus1.png' : '/aboutus.png';
+
   return (
     <div className="min-h-screen overflow-x-hidden" ref={containerRef}>
       {/* ─── HERO SECTION ─── */}
-      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-saffron/20 via-cream-50/90 to-gold/20 dark:from-brown-900 dark:via-brown-800 dark:to-brown-900" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(244,180,0,0.12),transparent_60%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(255,122,0,0.08),transparent_60%)]" />
+      <section className="relative h-[110vh] flex items-center justify-center overflow-hidden">
+        {/* Background with Image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={heroImage}
+            alt="About Aarambh TV"
+            fill
+            priority
+            className="object-cover object-center"
+            quality={100}
+          />
+          {/* Overlay for better text readability */}
+          {/* <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/30 to-transparent" /> */}
+          {/* <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" /> */}
+        </div>
 
+        {/* Background decorations (keeping particles for ambiance) */}
+        <div className="absolute inset-0 z-0">
           {/* Particles */}
-          {[...Array(15)].map((_, i) => (
+          {[...Array(12)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute rounded-full bg-gold/20 dark:bg-gold/10"
+              className="absolute rounded-full bg-gold/30 dark:bg-gold/20"
               style={{
-                width: Math.random() * 6 + 3 + 'px',
-                height: Math.random() * 6 + 3 + 'px',
+                width: Math.random() * 5 + 2 + 'px',
+                height: Math.random() * 5 + 2 + 'px',
                 left: Math.random() * 100 + '%',
                 top: Math.random() * 100 + '%',
               }}
               animate={{
-                y: [0, -20, 0],
-                opacity: [0.2, 0.6, 0.2],
+                y: [0, -15, 0],
+                opacity: [0.1, 0.4, 0.1],
               }}
               transition={{
                 duration: Math.random() * 4 + 2,
@@ -338,63 +364,24 @@ export default function AboutPage() {
           ))}
         </div>
 
-        {/* Content */}
-        <motion.div
-          style={{ y, opacity }}
-          className="relative z-10 text-center max-w-4xl mx-auto px-4"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-brown-800/80 backdrop-blur-sm rounded-full border border-gold/20 dark:border-gold/10 shadow-sm mb-5">
-              <GiLotus className="w-4 h-4 text-saffron" />
-              <span className="text-xs font-medium text-brown-700 dark:text-cream-50/70 uppercase tracking-wider">
-                Our Story
-              </span>
-            </div>
-
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-brown-900 dark:text-cream-50 mb-3">
-              <span className="bg-gradient-to-r from-saffron via-gold to-amber-400 bg-clip-text text-transparent">
-                Aarambh TV
-              </span>
-            </h1>
-            <p className="text-lg md:text-xl text-brown-700 dark:text-cream-50/70 font-light">
-              Where Spirituality Meets Technology
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="mt-4 max-w-2xl mx-auto"
-          >
-            <p className="text-sm md:text-base text-brown-600 dark:text-cream-50/50 leading-relaxed">
-              Aarambh TV is a modern spiritual media platform dedicated to devotion,
-              spiritual education, and divine experiences. We bring ancient wisdom
-              to the digital age through bhajans, stories, and spiritual guidance.
-            </p>
-          </motion.div>
-        </motion.div>
+        
 
         {/* Scroll Indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10"
         >
           <motion.div
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             className="flex flex-col items-center gap-1"
           >
-            <span className="text-[10px] text-brown-500 dark:text-cream-50/30 uppercase tracking-widest">
+            <span className="text-[10px] text-white/50 uppercase tracking-widest">
               Scroll
             </span>
-            <div className="w-4 h-6 border border-gold/30 rounded-full flex justify-center">
+            <div className="w-4 h-6 border border-white/30 rounded-full flex justify-center">
               <motion.div
                 animate={{ y: [0, 8, 0] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
@@ -493,7 +480,7 @@ export default function AboutPage() {
 
       {/* ─── VALUES SECTION ─── */}
       <section className="py-12 md:py-16 relative overflow-hidden bg-gradient-to-b from-white/30 to-cream-50/30 dark:from-brown-900/20 dark:to-brown-900/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -596,7 +583,7 @@ export default function AboutPage() {
 
       {/* ─── TEAM SECTION ─── */}
       <section className="py-12 md:py-16 relative overflow-hidden bg-gradient-to-b from-cream-50/30 to-white dark:from-brown-900/20 dark:to-brown-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
