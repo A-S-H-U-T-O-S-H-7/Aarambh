@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ChevronRight, Play, Sparkles, Volume2, VolumeX, Pause, Music } from 'lucide-react';
+import { ChevronRight, Play, Sparkles, Volume2, VolumeX, Pause, Music, Headphones } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 
@@ -37,6 +37,7 @@ const DEFAULT_VALUES = {
   ctaLink: '/stories',
   desktopImage: '/Herocopy1.png',
   mobileImage: '/MobHerobanner3.png',
+  videoUrl: '',
   mantra: 'ॐ नमः शिवाय',
   mantraTranslation: 'I bow to Lord Shiva',
   songUrl: '/music.mpeg',
@@ -57,7 +58,6 @@ const resolveHeroContent = (heroData = {}, mantraData = {}, songData = {}) => {
     heroData.accentHeading?.trim() ||
     DEFAULT_VALUES.headingLine2;
 
-  // Get song URL - prioritize the uploaded audio URL
   const songUrl = songData.url?.trim() || songData.songUrl?.trim() || DEFAULT_VALUES.songUrl;
 
   return {
@@ -68,6 +68,7 @@ const resolveHeroContent = (heroData = {}, mantraData = {}, songData = {}) => {
     ctaLink: heroData.ctaLink?.trim() || DEFAULT_VALUES.ctaLink,
     desktopImage: heroData.desktopImage?.trim() || DEFAULT_VALUES.desktopImage,
     mobileImage: heroData.mobileImage?.trim() || DEFAULT_VALUES.mobileImage,
+    videoUrl: heroData.videoUrl?.trim() || '',
     mantra: mantraData.text?.trim() || DEFAULT_VALUES.mantra,
     mantraTranslation: mantraData.translation?.trim() || DEFAULT_VALUES.mantraTranslation,
     songUrl: songUrl,
@@ -78,9 +79,10 @@ const resolveHeroContent = (heroData = {}, mantraData = {}, songData = {}) => {
 export default function HeroSection() {
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
+  const videoRef = useRef(null);
   const mouseRef  = useRef({ x: -9999, y: -9999 });
   const animIdRef = useRef(null);
-  
+
   // ============ STATE ============
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -90,6 +92,7 @@ export default function HeroSection() {
   const [loading, setLoading] = useState(true);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [audioError, setAudioError] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
 
   // ============ FETCH DYNAMIC CONTENT ============
   useEffect(() => {
@@ -152,18 +155,36 @@ export default function HeroSection() {
     }
   };
 
-  // ============ AUTO-PLAY ON USER INTERACTION ============
+  // ============ ATTEMPT AUTOPLAY ON LOAD ============
+  // Most browsers block unmuted autoplay until the visitor has interacted with
+  // the site at least once (e.g. a returning visitor). This tries immediately;
+  // if it's blocked, the click-anywhere fallback below picks up the first tap.
+  useEffect(() => {
+    if (!content.songAutoPlay || !content.songUrl || audioError || loading) return;
+    if (!audioRef.current) return;
+    if (hasUserInteracted) return;
+
+    audioRef.current.play()
+      .then(() => {
+        setIsPlaying(true);
+        setHasUserInteracted(true);
+      })
+      .catch((err) => {
+        // Autoplay blocked by the browser — waiting for user interaction.
+        console.warn('Autoplay blocked, waiting for interaction:', err);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content.songUrl, content.songAutoPlay, loading, audioError]);
+
+  // ============ AUTO-PLAY ON USER INTERACTION (fallback) ============
   useEffect(() => {
     if (!content.songAutoPlay || audioError) return;
-
-    // Only set up the listener if the song URL exists and we haven't interacted yet
     if (!content.songUrl || hasUserInteracted) return;
 
     const handleHeroClick = (e) => {
       const heroElement = document.querySelector('.hero-section-container');
       if (!heroElement) return;
-      
-      // Check if click is inside hero section and not on a button/link
+
       const target = e.target;
       if (heroElement.contains(target) && !target.closest('button') && !target.closest('a')) {
         if (audioRef.current && !isPlaying && content.songUrl && !hasUserInteracted && !audioError) {
@@ -176,7 +197,6 @@ export default function HeroSection() {
               console.error('Auto-play error:', err);
               setAudioError(true);
             });
-          // Remove listener after first interaction attempt
           document.removeEventListener('click', handleHeroClick);
         }
       }
@@ -298,7 +318,7 @@ export default function HeroSection() {
 
   // ============ RENDER ============
   const symbols = isMobile ? MOBILE_SANSKRIT_SYMBOLS : SANSKRIT_SYMBOLS;
-  
+
   const {
     headingLine1,
     headingLine2,
@@ -307,14 +327,14 @@ export default function HeroSection() {
     ctaLink,
     desktopImage,
     mobileImage,
+    videoUrl,
     mantra,
     mantraTranslation,
     songUrl,
   } = content;
 
   const bgImage = isMobile ? mobileImage : desktopImage;
-
-  // Check if we have a valid audio URL
+  const hasVideo = videoUrl && videoUrl.trim() !== '';
   const hasValidAudio = songUrl && songUrl.trim() !== '';
 
   return (
@@ -322,55 +342,49 @@ export default function HeroSection() {
       className="hero-section-container relative flex items-center overflow-hidden"
       style={{ height: isMobile ? 'clamp(520px, 75vh, 600px)' : 'clamp(480px, 98vh, 680px)' }}
     >
-      {/* ── Hidden Audio Player ── */}
-      {hasValidAudio && (
-        <audio
-          key={songUrl}
-          ref={audioRef}
-          src={songUrl}
+      {/* ── Background Video ── */}
+      {hasVideo && (
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          autoPlay
           loop
-          preload="auto"
-          onLoadedData={() => {
-            setIsLoaded(true);
-            setIsPlaying(false);
-            setAudioError(false);
-          }}
-          onError={(e) => {
-            console.error('Audio load error:', songUrl);
-            setAudioError(true);
-            // Try fallback if not already using it
-            if (songUrl !== '/music.mpeg') {
-              e.target.src = '/music.mpeg';
-            }
-          }}
+          muted
+          playsInline
+          onLoadedData={() => setIsVideoLoaded(true)}
         />
       )}
 
-      {/* ── Background image ── */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src={bgImage}
-          alt="Aarambh TV – Divine Spiritual Background"
-          fill
-          priority
-          className="object-cover object-top"
-          quality={100}
-          onError={(e) => {
-            e.target.src = isMobile ? '/MobHerobanner3.png' : '/Herocopy1.png';
-          }}
-        />
-        <div className={`absolute inset-0 ${isMobile ? 'bg-gradient-to-r from-black/60 via-black/30 to-transparent' : 'bg-gradient-to-r from-black/40 via-black/20 to-transparent'}`} />
-      </div>
+      {/* ── Background Image (fallback if no video or video not loaded) ── */}
+      {(!hasVideo || !isVideoLoaded) && (
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={bgImage}
+            alt="Aarambh TV – Divine Spiritual Background"
+            fill
+            priority
+            className="object-cover object-top"
+            quality={100}
+            onError={(e) => {
+              e.target.src = isMobile ? '/MobHerobanner3.png' : '/Herocopy1.png';
+            }}
+          />
+        </div>
+      )}
+
+      {/* Overlay gradient */}
+      <div className={`absolute inset-0 z-[1] ${isMobile ? 'bg-gradient-to-r from-black/70 via-black/30 to-transparent' : 'bg-gradient-to-r from-black/50 via-black/20 to-transparent'}`} />
 
       {/* ── Particle canvas ── */}
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full z-[1]"
+        className="absolute inset-0 w-full h-full z-[2]"
         style={{ pointerEvents: 'none' }}
       />
 
       {/* ── Floating Sanskrit symbols ── */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-[2]">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-[3]">
         {symbols.map(({ text, top, left, size, dur, delay }, i) => (
           <motion.span
             key={i}
@@ -383,11 +397,11 @@ export default function HeroSection() {
               fontWeight: 600,
               lineHeight: 1,
               color: isMobile ? 'rgba(255,210,60,0.5)' : 'rgba(255,210,60,0.75)',
-              textShadow: isMobile 
-                ? '0 0 8px rgba(255,190,30,0.5)' 
+              textShadow: isMobile
+                ? '0 0 8px rgba(255,190,30,0.5)'
                 : '0 0 12px rgba(255,190,30,0.9), 0 0 30px rgba(255,170,0,0.4)',
-              filter: isMobile 
-                ? 'drop-shadow(0 0 2px rgba(255,200,50,0.3))' 
+              filter: isMobile
+                ? 'drop-shadow(0 0 2px rgba(255,200,50,0.3))'
                 : 'drop-shadow(0 0 4px rgba(255,200,50,0.6))',
             }}
             animate={{
@@ -407,41 +421,56 @@ export default function HeroSection() {
         ))}
       </div>
 
-      {/* ── Audio Player Controls - CLAYMORPHISM DESIGN ── */}
+      {/* ── Audio Player Controls - Enhanced Visibility ── */}
       {hasValidAudio && !audioError && (
-        <div className={`absolute ${isMobile ? 'top-3 right-3' : 'top-4 right-4'} z-20 flex items-center gap-2`}>
-          {/* Music Status Badge - Claymorphism */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_3px_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.2)]">
-            <Music className="w-3 h-3 text-gold animate-pulse" />
-            <span className="text-[10px] text-white/70 font-medium">Divine Music</span>
+        <div className={`absolute ${isMobile ? 'top-4 right-4' : 'top-6 right-6'} z-20 flex items-center gap-3`}>
+          {/* Music Status Badge - Glowing */}
+          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-md border border-yellow-400/30 shadow-[0_0_30px_rgba(255,215,0,0.15)]">
+            <div className="relative">
+              <Music className="w-3.5 h-3.5 text-yellow-400" />
+              <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+            </div>
+            <span className="text-[11px] text-white/90 font-medium tracking-wide">
+              {isPlaying ? 'Divine Music' : 'Paused'}
+            </span>
           </div>
 
-          {/* Play/Pause Button - Claymorphism with 3D effect */}
+          {/* Play/Pause Button - High-visibility, animated */}
           <button
             onClick={togglePlay}
-            className={`${isMobile ? 'p-2' : 'p-2.5'} rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-[inset_0_1px_3px_rgba(255,255,255,0.15),0_8px_32px_rgba(0,0,0,0.25)] hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95 group`}
+            className={`relative ${isMobile ? 'p-3' : 'p-3.5'} rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 shadow-[0_0_25px_rgba(251,146,60,0.7)] hover:shadow-[0_0_45px_rgba(251,146,60,0.9)] transition-all duration-300 hover:scale-110 active:scale-95 group`}
             aria-label={isPlaying ? 'Pause music' : 'Play music'}
           >
-            {isPlaying ? (
-              <Pause className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white drop-shadow-[0_2px_8px_rgba(255,215,0,0.3)]`} />
-            ) : (
-              <Play className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white ml-0.5 drop-shadow-[0_2px_8px_rgba(255,215,0,0.3)]`} />
+            {/* Attention-grabbing ping ring — only before the user has ever interacted */}
+            {!hasUserInteracted && !isPlaying && (
+              <span className="absolute inset-0 rounded-full ring-4 ring-yellow-300/70 animate-ping" />
             )}
-            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-saffron/20 to-gold/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md" />
+
+            {/* Spinning dashed ring — active only while playing, vinyl-style cue */}
+            <span
+              className={`absolute -inset-1 rounded-full border-2 border-dashed border-yellow-200/80 ${
+                isPlaying ? 'animate-[spin_3s_linear_infinite]' : ''
+              }`}
+            />
+
+            {isPlaying ? (
+              <Pause className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] relative z-10`} />
+            ) : (
+              <Play className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-white ml-0.5 drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] relative z-10`} />
+            )}
           </button>
 
-          {/* Mute/Unmute Button - Claymorphism */}
+          {/* Mute/Unmute Button - Enhanced */}
           <button
             onClick={toggleMute}
-            className={`${isMobile ? 'p-2' : 'p-2.5'} rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-[inset_0_1px_3px_rgba(255,255,255,0.15),0_8px_32px_rgba(0,0,0,0.25)] hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95 group`}
+            className={`${isMobile ? 'p-3' : 'p-3.5'} rounded-full bg-white/10 backdrop-blur-md border ${isMuted ? 'border-red-400/30' : 'border-white/20'} shadow-[inset_0_1px_3px_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.2)] hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95 group`}
             aria-label={isMuted ? 'Unmute music' : 'Mute music'}
           >
             {isMuted ? (
-              <VolumeX className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white/50 drop-shadow-[0_2px_8px_rgba(255,255,255,0.1)]`} />
+              <VolumeX className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-400 drop-shadow-[0_2px_10px_rgba(255,0,0,0.3)] relative z-10`} />
             ) : (
-              <Volume2 className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white drop-shadow-[0_2px_8px_rgba(255,215,0,0.3)]`} />
+              <Volume2 className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-white drop-shadow-[0_2px_10px_rgba(255,215,0,0.3)] relative z-10`} />
             )}
-            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-saffron/20 to-gold/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md" />
           </button>
         </div>
       )}
@@ -514,7 +543,7 @@ export default function HeroSection() {
             transition={{ delay: 0.46 }}
             className={`flex flex-wrap gap-2 ${isMobile ? 'mb-5' : 'mb-6'}`}
           >
-            {isMobile 
+            {isMobile
               ? ['Bhajans', 'Temples', 'Horoscope', 'Festivals'].map((item) => (
                   <span
                     key={item}
@@ -610,7 +639,7 @@ export default function HeroSection() {
               animate={{ opacity: [0.4, 0.8, 0.4] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             />
-            
+
             <div className="relative z-10">
               <p className={`${isMobile ? 'text-[8px]' : 'text-[9px]'} text-white/45 uppercase tracking-[0.18em] mb-2 flex items-center gap-1`}>
                 <Sparkles className={`${isMobile ? 'w-3 h-3' : 'w-2.5 h-2.5'} text-gold`} />
@@ -667,6 +696,16 @@ export default function HeroSection() {
             />
           ))}
         </div>
+      )}
+
+      {/* Actual audio element */}
+      {hasValidAudio && !audioError && (
+        <audio
+          ref={audioRef}
+          src={songUrl}
+          loop
+          onError={() => setAudioError(true)}
+        />
       )}
     </section>
   );

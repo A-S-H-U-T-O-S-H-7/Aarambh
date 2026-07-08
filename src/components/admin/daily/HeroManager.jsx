@@ -1,8 +1,7 @@
-// components/admin/daily/HeroManager.jsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Save, Upload, X, Image as ImageIcon, Monitor, Smartphone } from 'lucide-react';
+import { Sparkles, Save, Upload, X, Monitor, Smartphone, Video, Image as ImageIcon, Check } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const DEFAULT_HERO_VALUES = {
@@ -12,19 +11,33 @@ const DEFAULT_HERO_VALUES = {
   ctaText: 'Explore Now',
   ctaLink: '#explore',
   desktopImage: '',
+  desktopVideo: '',
   mobileImage: '',
+  mobileVideo: '',
 };
 
 export default function HeroManager({ data, onSave, isDark, saving }) {
   const [hero, setHero] = useState(DEFAULT_HERO_VALUES);
   
-  const [desktopFile, setDesktopFile] = useState(null);
-  const [mobileFile, setMobileFile] = useState(null);
-  const [desktopPreview, setDesktopPreview] = useState(null);
-  const [mobilePreview, setMobilePreview] = useState(null);
+  const [desktopImageFile, setDesktopImageFile] = useState(null);
+  const [desktopVideoFile, setDesktopVideoFile] = useState(null);
+  const [mobileImageFile, setMobileImageFile] = useState(null);
+  const [mobileVideoFile, setMobileVideoFile] = useState(null);
   
-  const desktopInputRef = useRef(null);
-  const mobileInputRef = useRef(null);
+  const [desktopImagePreview, setDesktopImagePreview] = useState(null);
+  const [desktopVideoPreview, setDesktopVideoPreview] = useState(null);
+  const [mobileImagePreview, setMobileImagePreview] = useState(null);
+  const [mobileVideoPreview, setMobileVideoPreview] = useState(null);
+  
+  const desktopImageInputRef = useRef(null);
+  const desktopVideoInputRef = useRef(null);
+  const mobileImageInputRef = useRef(null);
+  const mobileVideoInputRef = useRef(null);
+  
+  const videoRefs = {
+    desktop: useRef(null),
+    mobile: useRef(null),
+  };
 
   useEffect(() => {
     if (data) {
@@ -48,10 +61,15 @@ export default function HeroManager({ data, onSave, isDark, saving }) {
         ctaText: data.ctaText?.trim() || DEFAULT_HERO_VALUES.ctaText,
         ctaLink: data.ctaLink?.trim() || DEFAULT_HERO_VALUES.ctaLink,
         desktopImage: data.desktopImage || '',
+        desktopVideo: data.desktopVideo || '',
         mobileImage: data.mobileImage || '',
+        mobileVideo: data.mobileVideo || '',
       });
-      setDesktopPreview(data.desktopImage || null);
-      setMobilePreview(data.mobileImage || null);
+      
+      setDesktopImagePreview(data.desktopImage || null);
+      setDesktopVideoPreview(data.desktopVideo || null);
+      setMobileImagePreview(data.mobileImage || null);
+      setMobileVideoPreview(data.mobileVideo || null);
     }
   }, [data]);
 
@@ -59,59 +77,140 @@ export default function HeroManager({ data, onSave, isDark, saving }) {
     setHero({ ...hero, [field]: value });
   };
 
-  const handleDesktopUpload = (e) => {
-    const file = e.target.files[0];
+  const handleFileUpload = (type, file, setFile, setPreview) => {
     if (!file) return;
     
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+    // For videos
+    if (file.type.startsWith('video/')) {
+      if (file.size > 30 * 1024 * 1024) {
+        toast.error('Video size must be less than 30MB');
+        return;
+      }
+      
+      // Check duration for videos
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = function() {
+        if (this.duration > 30) {
+          toast.error('Video must be 30 seconds or less');
+          return;
+        }
+        setFile(file);
+        setPreview(URL.createObjectURL(file));
+        toast.success(`${type} uploaded successfully!`);
+      };
+      video.src = URL.createObjectURL(file);
+      video.onerror = function() {
+        setFile(file);
+        setPreview(URL.createObjectURL(file));
+        toast.warning('Could not verify video duration. Please ensure it is 30 seconds or less.');
+      };
       return;
     }
     
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
+    // For images
+    if (file.type.startsWith('image/')) {
+      const maxSize = type.includes('Desktop') ? 8 : 5;
+      if (file.size > maxSize * 1024 * 1024) {
+        toast.error(`Image size must be less than ${maxSize}MB`);
+        return;
+      }
+      setFile(file);
+      setPreview(URL.createObjectURL(file));
+      toast.success(`${type} uploaded successfully!`);
+    } else {
+      toast.error('Please select an image or video file');
     }
-    
-    setDesktopFile(file);
-    setDesktopPreview(URL.createObjectURL(file));
   };
 
-  const handleMobileUpload = (e) => {
+  const handleDesktopImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
-      return;
-    }
-    
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-    
-    setMobileFile(file);
-    setMobilePreview(URL.createObjectURL(file));
+    handleFileUpload('Desktop Image', file, setDesktopImageFile, setDesktopImagePreview);
+    e.target.value = '';
   };
 
-  const removeDesktopImage = () => {
-    setDesktopFile(null);
-    setDesktopPreview(null);
-    setHero({ ...hero, desktopImage: '' });
-    if (desktopInputRef.current) desktopInputRef.current.value = '';
+  const handleDesktopVideoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    handleFileUpload('Desktop Video', file, setDesktopVideoFile, setDesktopVideoPreview);
+    e.target.value = '';
   };
 
-  const removeMobileImage = () => {
-    setMobileFile(null);
-    setMobilePreview(null);
-    setHero({ ...hero, mobileImage: '' });
-    if (mobileInputRef.current) mobileInputRef.current.value = '';
+  const handleMobileImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    handleFileUpload('Mobile Image', file, setMobileImageFile, setMobileImagePreview);
+    e.target.value = '';
+  };
+
+  const handleMobileVideoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    handleFileUpload('Mobile Video', file, setMobileVideoFile, setMobileVideoPreview);
+    e.target.value = '';
+  };
+
+  const removeMedia = (type) => {
+    switch(type) {
+      case 'desktopImage':
+        setDesktopImageFile(null);
+        setDesktopImagePreview(null);
+        setHero({ ...hero, desktopImage: '' });
+        if (desktopImageInputRef.current) desktopImageInputRef.current.value = '';
+        break;
+      case 'desktopVideo':
+        setDesktopVideoFile(null);
+        setDesktopVideoPreview(null);
+        setHero({ ...hero, desktopVideo: '' });
+        if (desktopVideoInputRef.current) desktopVideoInputRef.current.value = '';
+        if (videoRefs.desktop.current) {
+          videoRefs.desktop.current.pause();
+          videoRefs.desktop.current.src = '';
+        }
+        break;
+      case 'mobileImage':
+        setMobileImageFile(null);
+        setMobileImagePreview(null);
+        setHero({ ...hero, mobileImage: '' });
+        if (mobileImageInputRef.current) mobileImageInputRef.current.value = '';
+        break;
+      case 'mobileVideo':
+        setMobileVideoFile(null);
+        setMobileVideoPreview(null);
+        setHero({ ...hero, mobileVideo: '' });
+        if (mobileVideoInputRef.current) mobileVideoInputRef.current.value = '';
+        if (videoRefs.mobile.current) {
+          videoRefs.mobile.current.pause();
+          videoRefs.mobile.current.src = '';
+        }
+        break;
+    }
+  };
+
+  // Get active media type for display
+  const getActiveMediaType = (device) => {
+    const video = device === 'desktop' ? hero.desktopVideo : hero.mobileVideo;
+    const image = device === 'desktop' ? hero.desktopImage : hero.mobileImage;
+    
+    if (video) return 'video';
+    if (image) return 'image';
+    return 'none';
   };
 
   const handleSave = () => {
     if (!hero.headingLine1?.trim() || !hero.ctaText?.trim()) {
       toast.error('Please fill in required fields');
+      return;
+    }
+    
+    // Check if at least one media is set for EITHER desktop OR mobile
+    const hasDesktopMedia = hero.desktopImage || hero.desktopVideo;
+    const hasMobileMedia = hero.mobileImage || hero.mobileVideo;
+    
+    // Only require at least one device to have media
+    if (!hasDesktopMedia && !hasMobileMedia) {
+      toast.error('Please add at least one media (image or video) for desktop OR mobile');
       return;
     }
     
@@ -122,13 +221,131 @@ export default function HeroManager({ data, onSave, isDark, saving }) {
       headingLine2: hero.headingLine2?.trim(),
       tagline: hero.tagline?.trim() || 'आरम्भः सर्वकार्येषु मङ्गलाचरणम्',
       oldDesktopImage: data?.desktopImage || null,
+      oldDesktopVideo: data?.desktopVideo || null,
       oldMobileImage: data?.mobileImage || null,
+      oldMobileVideo: data?.mobileVideo || null,
     };
     
-    onSave(saveData, desktopFile, mobileFile);
+    onSave(
+      saveData, 
+      desktopImageFile, 
+      desktopVideoFile, 
+      mobileImageFile, 
+      mobileVideoFile
+    );
   };
 
   const isFormValid = hero.headingLine1?.trim() && hero.ctaText?.trim();
+
+  // Render media preview with status indicator
+  const renderMediaPreview = (type, preview, fileType, device) => {
+    const isVideo = fileType === 'video';
+    const isActive = preview || (type === 'desktopImage' ? hero.desktopImage : 
+                    type === 'desktopVideo' ? hero.desktopVideo :
+                    type === 'mobileImage' ? hero.mobileImage : hero.mobileVideo);
+    
+    if (!isActive) return null;
+    
+    const isDesktop = type.includes('desktop');
+    const label = isDesktop ? 'Desktop' : 'Mobile';
+    const deviceKey = isDesktop ? 'desktop' : 'mobile';
+    const activeType = getActiveMediaType(deviceKey);
+    const isCurrentlyActive = (isVideo && activeType === 'video') || (!isVideo && activeType === 'image');
+    
+    return (
+      <div className="relative rounded-lg overflow-hidden border-2 transition-all duration-300" 
+           style={{
+             borderColor: isCurrentlyActive ? '#F59E0B' : 'rgba(255,255,255,0.1)',
+             boxShadow: isCurrentlyActive ? '0 0 20px rgba(245, 158, 11, 0.2)' : 'none'
+           }}>
+        {isVideo ? (
+          <video
+            ref={el => {
+              if (isDesktop) videoRefs.desktop.current = el;
+              else videoRefs.mobile.current = el;
+            }}
+            src={preview || hero[type]}
+            className="w-full h-28 object-cover"
+            loop
+            muted
+            autoPlay
+            playsInline
+          />
+        ) : (
+          <img 
+            src={preview || hero[type]} 
+            alt={`${label} ${fileType}`} 
+            className="w-full h-28 object-cover"
+          />
+        )}
+        
+        {/* Status badge */}
+        <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/60 backdrop-blur-sm text-white">
+          {isVideo ? <Video className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
+          {isVideo ? 'Video' : 'Image'}
+          {isCurrentlyActive && (
+            <span className="flex items-center gap-1 ml-1 text-yellow-400">
+              <Check className="w-3 h-3" /> Active
+            </span>
+          )}
+        </div>
+        
+        <button
+          onClick={() => removeMedia(type)}
+          className="absolute top-2 right-2 p-1 bg-red-500/90 text-white rounded-full hover:bg-red-600 transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  };
+
+  // Render upload button
+  const renderUploadButton = (type, onUpload, ref, fileType, device) => {
+    const isDesktop = type.includes('desktop');
+    const label = isDesktop ? 'Desktop' : 'Mobile';
+    const isVideo = fileType === 'video';
+    const deviceKey = isDesktop ? 'desktop' : 'mobile';
+    const hasMedia = isVideo ? (isDesktop ? hero.desktopVideo : hero.mobileVideo) : (isDesktop ? hero.desktopImage : hero.mobileImage);
+    const activeType = getActiveMediaType(deviceKey);
+    const isActive = (isVideo && activeType === 'video') || (!isVideo && activeType === 'image');
+    const Icon = isVideo ? Video : ImageIcon;
+    const color = isVideo ? 'text-purple-500' : 'text-yellow-500';
+    
+    if (hasMedia) return null;
+    
+    return (
+      <label className={`flex items-center gap-2 w-full p-3 rounded-lg border-2 border-dashed cursor-pointer transition-all ${
+        isDark
+          ? 'border-gray-700 hover:border-yellow-500 bg-gray-900/30'
+          : 'border-gray-300 hover:border-yellow-400 bg-gray-50'
+      } ${isActive ? 'ring-2 ring-yellow-400/50' : ''}`}>
+        <Upload className={`w-4 h-4 ${color}`} />
+        <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          Upload {label} {isVideo ? 'Video' : 'Image'}
+        </span>
+        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          {isVideo ? '(Max 30 sec, 30MB)' : '(Max 5MB)'}
+        </span>
+        <input
+          ref={ref}
+          type="file"
+          accept={isVideo ? "video/*" : "image/*"}
+          className="hidden"
+          onChange={onUpload}
+        />
+      </label>
+    );
+  };
+
+  // Check if any media exists for the device
+  const hasDeviceMedia = (device) => {
+    if (device === 'desktop') {
+      return hero.desktopImage || hero.desktopVideo;
+    } else {
+      return hero.mobileImage || hero.mobileVideo;
+    }
+  };
 
   return (
     <div className={`rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg ${
@@ -155,7 +372,7 @@ export default function HeroManager({ data, onSave, isDark, saving }) {
         <div className="grid gap-3">
           <div>
             <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Title Line 1 (White)
+              Title Line 1 (White) *
             </label>
             <input
               type="text"
@@ -209,7 +426,7 @@ export default function HeroManager({ data, onSave, isDark, saving }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              CTA Text
+              CTA Text *
             </label>
             <input
               type="text"
@@ -241,96 +458,79 @@ export default function HeroManager({ data, onSave, isDark, saving }) {
           </div>
         </div>
 
-        {/* Desktop Image Upload */}
+        {/* ─── DESKTOP MEDIA ─── */}
         <div>
-          <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            <div className="flex items-center gap-1.5">
-              <Monitor className="w-3.5 h-3.5" />
-              Desktop Background Image
-            </div>
-          </label>
-          {desktopPreview ? (
-            <div className="relative rounded-lg overflow-hidden">
-              <img 
-                src={desktopPreview} 
-                alt="Desktop background" 
-                className="w-full h-28 object-cover rounded-lg"
-              />
-              <button
-                onClick={removeDesktopImage}
-                className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <label className={`flex items-center gap-2 w-full p-3 rounded-lg border-2 border-dashed cursor-pointer transition-all ${
-              isDark
-                ? 'border-gray-700 hover:border-yellow-500 bg-gray-900/30'
-                : 'border-gray-300 hover:border-yellow-400 bg-gray-50'
+          <div className="flex items-center gap-2 mb-2">
+            <Monitor className="w-4 h-4 text-blue-500" />
+            <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+              Desktop Background
+            </h3>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+              getActiveMediaType('desktop') === 'video' 
+                ? 'bg-purple-500/20 text-purple-400' 
+                : getActiveMediaType('desktop') === 'image'
+                ? 'bg-yellow-500/20 text-yellow-400'
+                : 'bg-gray-500/20 text-gray-400'
             }`}>
-              <Upload className="w-4 h-4 text-yellow-500" />
-              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Upload Desktop Image
-              </span>
-              <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                (Recommended: 1920x1080)
-              </span>
-              <input
-                ref={desktopInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleDesktopUpload}
-              />
-            </label>
-          )}
+              {getActiveMediaType('desktop') === 'video' ? '🎬 Video' : 
+               getActiveMediaType('desktop') === 'image' ? '🖼️ Image' : 'None'}
+            </span>
+          </div>
+          
+          <div className="space-y-2">
+            {/* Desktop Video */}
+            <div>
+              {renderMediaPreview('desktopVideo', desktopVideoPreview, 'video', 'desktop')}
+              {renderUploadButton('desktopVideo', handleDesktopVideoUpload, desktopVideoInputRef, 'video', 'desktop')}
+            </div>
+            
+            {/* Desktop Image */}
+            <div>
+              {renderMediaPreview('desktopImage', desktopImagePreview, 'image', 'desktop')}
+              {renderUploadButton('desktopImage', handleDesktopImageUpload, desktopImageInputRef, 'image', 'desktop')}
+            </div>
+          </div>
         </div>
 
-        {/* Mobile Image Upload */}
+        {/* ─── MOBILE MEDIA ─── */}
         <div>
-          <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            <div className="flex items-center gap-1.5">
-              <Smartphone className="w-3.5 h-3.5" />
-              Mobile Background Image
-            </div>
-          </label>
-          {mobilePreview ? (
-            <div className="relative rounded-lg overflow-hidden">
-              <img 
-                src={mobilePreview} 
-                alt="Mobile background" 
-                className="w-full h-28 object-cover rounded-lg"
-              />
-              <button
-                onClick={removeMobileImage}
-                className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <label className={`flex items-center gap-2 w-full p-3 rounded-lg border-2 border-dashed cursor-pointer transition-all ${
-              isDark
-                ? 'border-gray-700 hover:border-yellow-500 bg-gray-900/30'
-                : 'border-gray-300 hover:border-yellow-400 bg-gray-50'
+          <div className="flex items-center gap-2 mb-2">
+            <Smartphone className="w-4 h-4 text-green-500" />
+            <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+              Mobile Background
+            </h3>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+              getActiveMediaType('mobile') === 'video' 
+                ? 'bg-purple-500/20 text-purple-400' 
+                : getActiveMediaType('mobile') === 'image'
+                ? 'bg-yellow-500/20 text-yellow-400'
+                : 'bg-gray-500/20 text-gray-400'
             }`}>
-              <Upload className="w-4 h-4 text-yellow-500" />
-              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Upload Mobile Image
-              </span>
-              <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                (Recommended: 768x1024)
-              </span>
-              <input
-                ref={mobileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleMobileUpload}
-              />
-            </label>
-          )}
+              {getActiveMediaType('mobile') === 'video' ? '🎬 Video' : 
+               getActiveMediaType('mobile') === 'image' ? '🖼️ Image' : 'None'}
+            </span>
+          </div>
+          
+          <div className="space-y-2">
+            {/* Mobile Video */}
+            <div>
+              {renderMediaPreview('mobileVideo', mobileVideoPreview, 'video', 'mobile')}
+              {renderUploadButton('mobileVideo', handleMobileVideoUpload, mobileVideoInputRef, 'video', 'mobile')}
+            </div>
+            
+            {/* Mobile Image */}
+            <div>
+              {renderMediaPreview('mobileImage', mobileImagePreview, 'image', 'mobile')}
+              {renderUploadButton('mobileImage', handleMobileImageUpload, mobileImageInputRef, 'image', 'mobile')}
+            </div>
+          </div>
+        </div>
+
+        {/* Info message */}
+        <div className={`p-3 rounded-lg text-xs ${
+          isDark ? 'bg-gray-900/50 text-gray-400' : 'bg-gray-50 text-gray-500'
+        }`}>
+          <p>💡 <span className="font-medium">Priority:</span> Video takes priority over image for each device. You can set media for desktop only, mobile only, or both independently.</p>
         </div>
 
         <button

@@ -48,7 +48,7 @@ export default function DailyManagementPage() {
     setLoading(false);
   };
 
-  const handleSave = async (type, data, desktopImage, mobileImage, audioFile, saveFn, successMsg, entityTitle) => {
+  const handleSave = async (type, data, desktopImage, desktopVideo, mobileImage, mobileVideo, audioFile, saveFn, successMsg, entityTitle) => {
     setSaving(true);
     
     let oldData = null;
@@ -59,7 +59,7 @@ export default function DailyManagementPage() {
 
     let result;
     if (type === 'hero') {
-      result = await saveFn(data, desktopImage, mobileImage);
+      result = await saveFn(data, desktopImage, desktopVideo, mobileImage, mobileVideo);
     } else if (type === 'song') {
       result = await saveFn(data, audioFile);
     } else {
@@ -125,8 +125,8 @@ export default function DailyManagementPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <HeroManager
           data={hero}
-          onSave={(data, desktopImage, mobileImage) => 
-            handleSave('hero', data, desktopImage, mobileImage, null, saveHero, 'Hero section updated!', 'Hero Section')
+          onSave={(data, desktopImage, desktopVideo, mobileImage, mobileVideo) => 
+            handleSave('hero', data, desktopImage, desktopVideo, mobileImage, mobileVideo, null, saveHero, 'Hero section updated!', 'Hero Section')
           }
           isDark={isDark}
           saving={saving}
@@ -134,7 +134,7 @@ export default function DailyManagementPage() {
         <SongManager
           data={song}
           onSave={(data, audioFile) => 
-            handleSave('song', data, null, null, audioFile, saveSong, 'Song updated!', 'Background Song')
+            handleSave('song', data, null, null, null, null, audioFile, saveSong, 'Song updated!', 'Background Song')
           }
           isDark={isDark}
           saving={saving}
@@ -144,13 +144,13 @@ export default function DailyManagementPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <MantraManager
           data={mantra}
-          onSave={(data) => handleSave('mantra', data, null, null, null, saveMantra, 'Mantra updated!', 'Mantra of the Day')}
+          onSave={(data) => handleSave('mantra', data, null, null, null, null, null, saveMantra, 'Mantra updated!', 'Mantra of the Day')}
           isDark={isDark}
           saving={saving}
         />
         <WisdomManager
           data={wisdom}
-          onSave={(data) => handleSave('wisdom', data, null, null, null, saveWisdom, 'Wisdom updated!', 'Wisdom of the Day')}
+          onSave={(data) => handleSave('wisdom', data, null, null, null, null, null, saveWisdom, 'Wisdom updated!', 'Wisdom of the Day')}
           isDark={isDark}
           saving={saving}
         />

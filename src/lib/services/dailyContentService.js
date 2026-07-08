@@ -26,14 +26,33 @@ const uploadHeroImage = async (file, type) => {
   }
 };
 
-// Delete image from Firebase Storage
-const deleteHeroImage = async (imageUrl) => {
-  if (!imageUrl) return;
+// Upload video to Firebase Storage
+const uploadHeroVideo = async (file, type) => {
+  if (!file) return null;
+  
   try {
-    const storageRef = ref(storage, imageUrl);
+    const timestamp = Date.now();
+    const extension = (file.name || 'mp4').split('.').pop().toLowerCase();
+    const fileName = `hero_${type}_video_${timestamp}.${extension}`;
+    const storageRef = ref(storage, `${STORAGE_PATH}/${fileName}`);
+
+    const uploadResult = await uploadBytes(storageRef, file);
+    const videoUrl = await getDownloadURL(uploadResult.ref);
+    return videoUrl;
+  } catch (error) {
+    console.error(`Error uploading ${type} video:`, error);
+    throw error;
+  }
+};
+
+// Delete media from Firebase Storage
+const deleteHeroMedia = async (mediaUrl) => {
+  if (!mediaUrl) return;
+  try {
+    const storageRef = ref(storage, mediaUrl);
     await deleteObject(storageRef);
   } catch (error) {
-    console.error('Error deleting image:', error);
+    console.error('Error deleting media:', error);
   }
 };
 
@@ -105,34 +124,52 @@ export const getDailyItem = async (key) => {
   }
 };
 
-// Save/Update hero with images
-export const saveHero = async (data, desktopImage = null, mobileImage = null) => {
+// Save/Update hero with images and videos
+export const saveHero = async (data, desktopImage = null, desktopVideo = null, mobileImage = null, mobileVideo = null) => {
   try {
     let heroData = { ...data };
     
     // Upload desktop image
     if (desktopImage) {
-      // Delete old desktop image if exists
       if (data.oldDesktopImage) {
-        await deleteHeroImage(data.oldDesktopImage);
+        await deleteHeroMedia(data.oldDesktopImage);
       }
-      const desktopUrl = await uploadHeroImage(desktopImage, 'desktop');
-      heroData.desktopImage = desktopUrl;
+      const desktopImageUrl = await uploadHeroImage(desktopImage, 'desktop');
+      heroData.desktopImage = desktopImageUrl;
+    }
+    
+    // Upload desktop video
+    if (desktopVideo) {
+      if (data.oldDesktopVideo) {
+        await deleteHeroMedia(data.oldDesktopVideo);
+      }
+      const desktopVideoUrl = await uploadHeroVideo(desktopVideo, 'desktop');
+      heroData.desktopVideo = desktopVideoUrl;
     }
     
     // Upload mobile image
     if (mobileImage) {
-      // Delete old mobile image if exists
       if (data.oldMobileImage) {
-        await deleteHeroImage(data.oldMobileImage);
+        await deleteHeroMedia(data.oldMobileImage);
       }
-      const mobileUrl = await uploadHeroImage(mobileImage, 'mobile');
-      heroData.mobileImage = mobileUrl;
+      const mobileImageUrl = await uploadHeroImage(mobileImage, 'mobile');
+      heroData.mobileImage = mobileImageUrl;
+    }
+    
+    // Upload mobile video
+    if (mobileVideo) {
+      if (data.oldMobileVideo) {
+        await deleteHeroMedia(data.oldMobileVideo);
+      }
+      const mobileVideoUrl = await uploadHeroVideo(mobileVideo, 'mobile');
+      heroData.mobileVideo = mobileVideoUrl;
     }
     
     // Remove temp fields
     delete heroData.oldDesktopImage;
+    delete heroData.oldDesktopVideo;
     delete heroData.oldMobileImage;
+    delete heroData.oldMobileVideo;
     
     await setDoc(doc(db, COLLECTION, "hero"), {
       ...heroData,
@@ -176,9 +213,7 @@ export const saveSong = async (data, audioFile = null) => {
   try {
     let audioUrl = '';
 
-    // Only handle audio file upload
     if (audioFile) {
-      // Delete old audio if exists
       if (data.oldAudioUrl) {
         await deleteSongAudio(data.oldAudioUrl);
       }
@@ -189,10 +224,8 @@ export const saveSong = async (data, audioFile = null) => {
       return { success: false, error: 'Please upload an audio file' };
     }
 
-    // Simple song data with only the audio URL
     const songData = {
       url: audioUrl,
-      // Keep existing metadata if present, but don't require it
       title: data.title || '',
       artist: data.artist || '',
       isPlaying: data.isPlaying !== undefined ? data.isPlaying : true,
