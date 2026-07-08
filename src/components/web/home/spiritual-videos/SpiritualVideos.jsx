@@ -1,4 +1,3 @@
-// components/web/home/video/SpiritualVideos.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -52,7 +51,7 @@ export default function SpiritualVideos() {
       try {
         const [trendingResult, latestResult] = await Promise.all([
           getTrendingVideos(4, 'standard'),
-          getLatestVideos(6, 'standard'), // Only full videos (not shorts/reels)
+          getLatestVideos(6, 'standard'),
         ]);
         if (trendingResult.success) setTrendingVideos(trendingResult.videos);
         if (latestResult.success) setLatestVideos(latestResult.videos);
@@ -121,6 +120,7 @@ export default function SpiritualVideos() {
 
   return (
     <section className="py-6 lg:py-8 relative overflow-hidden bg-[#FBF3E7] dark:bg-[#15100C]">
+      {/* Background gradients */}
       <div className="absolute inset-0 opacity-100 dark:opacity-0 transition-opacity"
         style={{
           backgroundImage: `
@@ -165,76 +165,101 @@ export default function SpiritualVideos() {
           </p>
         </motion.div>
 
-        {/* Left: Trending | Right: Latest */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Trending */}
+        {/* ─── TRENDING SECTION - ROSE/PURPLE GRADIENT ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-4 items-start">
+          {/* Trending - With Visual Separation */}
           <div className="lg:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <FaFire className="w-5 h-5 text-[#C0392B] dark:text-[#E8674F]" />
-              <h3 className="text-base sm:text-lg font-semibold text-[#3D2B1A] dark:text-[#F5EAD9]">
-                Trending Now
-              </h3>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {trendingVideos.map((video, index) => {
-                const tone = getTone(video.category);
-                return (
-                  <motion.div
-                    key={video.id}
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.08 }}
-                    whileHover={{ y: -3 }}
-                    onClick={() => handleOpenModal(video)}
-                    className="group relative bg-white dark:bg-[#241B14] rounded-xl border border-[#F4B400]/20 dark:border-[#F4B400]/20 overflow-hidden hover:shadow-lg dark:hover:shadow-black/40 transition-all duration-300 hover:border-[#F4B400]/40 cursor-pointer"
-                  >
-                    <div className="relative aspect-[4/3] w-full overflow-hidden">
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      <div className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 ${tone.bg} text-white text-[8px] font-medium rounded-full shadow-lg backdrop-blur-sm`}>
-                        <span className="capitalize">{video.category}</span>
-                      </div>
-                      <div className="absolute inset-0 bg-black/25 flex items-center justify-center transition-opacity duration-300">
-                        <div className="w-8 h-8 rounded-full text-white flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #E8742C, #F4B400)' }}>
-                          <FaPlay className="w-3 h-3 ml-0.5" />
+            {/* Trending Section Container with Rose/Purple Gradient Border */}
+           <div className="relative rounded-xl p-2 md:p-4 bg-gradient-to-br from-rose-200/60 via-pink-100/50 to-purple-200/60 dark:from-rose-950/40 dark:via-pink-950/30 dark:to-purple-950/40 border-2 border-rose-300/30 dark:border-rose-700/30 shadow-md shadow-rose-200/15 dark:shadow-rose-900/20"> 
+             {/* Subtle inner glow */}
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-rose-400/5 via-pink-400/5 to-purple-400/5 dark:from-rose-400/10 dark:via-pink-400/10 dark:to-purple-400/10 pointer-events-none" />
+              
+              {/* Decorative top accent line */}
+              <div className="absolute top-0 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-rose-400/50 to-transparent rounded-full" />
+
+              {/* Floating sparkle decorations */}
+              <div className="absolute top-2 right-2 text-rose-300/20 dark:text-rose-400/10 text-lg pointer-events-none">
+                ✦
+              </div>
+              <div className="absolute bottom-2 left-2 text-purple-300/20 dark:text-purple-400/10 text-lg pointer-events-none">
+                ✦
+              </div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-1.5 rounded-full bg-gradient-to-r from-rose-500/20 to-pink-500/20 dark:from-rose-500/30 dark:to-pink-500/30">
+                    <FaFire className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+                  </div>
+                  <h3 className="text-base font-semibold text-[#3D2B1A] dark:text-[#F5EAD9]">
+                    Trending Now
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-medium border border-rose-200/30 dark:border-rose-700/30">
+                    🔥 Hot
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {trendingVideos.map((video, index) => {
+                    const tone = getTone(video.category);
+                    return (
+                      <motion.div
+                        key={video.id}
+                        initial={{ opacity: 0, y: 16 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.08 }}
+                        whileHover={{ y: -3 }}
+                        onClick={() => handleOpenModal(video)}
+                        className="group relative bg-white/90 dark:bg-[#241B14]/90 backdrop-blur-sm rounded-xl border border-rose-200/30 dark:border-rose-700/30 overflow-hidden hover:shadow-lg hover:shadow-rose-200/30 dark:hover:shadow-rose-900/20 hover:border-rose-400/50 dark:hover:border-rose-500/40 transition-all duration-300 cursor-pointer"
+                      >
+                        <div className="relative aspect-[4/3] w-full overflow-hidden">
+                          <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <div className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 ${tone.bg} text-white text-[8px] font-medium rounded-full shadow-lg backdrop-blur-sm`}>
+                            <span className="capitalize">{video.category}</span>
+                          </div>
+                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center transition-opacity duration-300">
+                            <div className="w-8 h-8 rounded-full text-white flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #E8742C, #F4B400)' }}>
+                              <FaPlay className="w-3 h-3 ml-0.5" />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className="p-2.5">
-                      <h4 className="text-xs font-semibold text-[#3D2B1A] dark:text-[#F5EAD9] line-clamp-2 mb-1 leading-snug">
-                        {video.title}
-                      </h4>
-                      <p className="text-[10px] text-[#8C7456] dark:text-[#9C8569] line-clamp-1">
-                        {video.speaker}
-                      </p>
-                      <div className="flex items-center gap-2 text-[9px] text-[#8C7456] dark:text-[#9C8569] mt-1.5">
-                        <span className="flex items-center gap-0.5">
-                          <FaEye className="w-2 h-2" />
-                          {formatViews(video.views)}
-                        </span>
-                        <span className="flex items-center gap-0.5">
-                          <FaClock className="w-2 h-2" />
-                          {video.duration}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleLike(video.id); }}
-                      className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors"
-                    >
-                      {isLiked(video.id) ? <FaHeart className="w-3 h-3 text-[#E8674F]" /> : <FaRegHeart className="w-3 h-3 text-white/80" />}
-                    </button>
-                  </motion.div>
-                );
-              })}
+                        <div className="p-2.5">
+                          <h4 className="text-xs font-semibold text-[#3D2B1A] dark:text-[#F5EAD9] line-clamp-2 mb-1 leading-snug">
+                            {video.title}
+                          </h4>
+                          <p className="text-[10px] text-[#8C7456] dark:text-[#9C8569] line-clamp-1">
+                            {video.speaker}
+                          </p>
+                          <div className="flex items-center gap-2 text-[9px] text-[#8C7456] dark:text-[#9C8569] mt-1.5">
+                            <span className="flex items-center gap-0.5">
+                              <FaEye className="w-2 h-2" />
+                              {formatViews(video.views)}
+                            </span>
+                            <span className="flex items-center gap-0.5">
+                              <FaClock className="w-2 h-2" />
+                              {video.duration}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleLike(video.id); }}
+                          className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors"
+                        >
+                          {isLiked(video.id) ? <FaHeart className="w-3 h-3 text-[#E8674F]" /> : <FaRegHeart className="w-3 h-3 text-white/80" />}
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Latest Videos */}
+          {/* ─── LATEST VIDEOS ─── */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -247,6 +272,7 @@ export default function SpiritualVideos() {
                 </span>
               </div>
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {latestVideos.map((video, index) => {
                 const tone = getTone(video.category);

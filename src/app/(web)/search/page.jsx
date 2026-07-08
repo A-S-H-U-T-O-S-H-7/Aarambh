@@ -3,18 +3,19 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
   ArrowLeft,
-  Music,
-  Video,
-  Building,
-  BookOpen,
-  Calendar,
-  Star,
 } from 'lucide-react';
 import { searchAllContent } from '@/lib/services/searchService';
+import BhajanCard from '@/components/web/home/bhajan/BhajanCard';
+import VideoCard from '@/components/web/home/spiritual-videos/VideoCard';
+import TempleCard from '@/components/web/home/temple/TempleCard';
+import StoryCard from '@/components/web/home/story/StoryCard';
+import FestivalCard from '@/components/web/home/festival/FestivalCard';
+import BhajanPlayerModal from '@/components/web/home/bhajan/Bhajanplayermodal';
+import VideoPlayerModal from '@/components/web/home/spiritual-videos/VideoPlayerModal';
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -30,6 +31,12 @@ function SearchContent() {
   });
   const [loading, setLoading] = useState(true);
   const [totalResults, setTotalResults] = useState(0);
+  
+  // ─── Modal States ───
+  const [modalBhajan, setModalBhajan] = useState(null);
+  const [modalVideo, setModalVideo] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playingId, setPlayingId] = useState(null);
 
   useEffect(() => {
     if (query && query.length >= 2) {
@@ -49,6 +56,31 @@ function SearchContent() {
       setTotalResults(result.total);
     }
     setLoading(false);
+  };
+
+  // ─── Modal Handlers ───
+  const handleOpenBhajanModal = (bhajan) => {
+    setModalBhajan(bhajan);
+    setPlayingId(bhajan.id);
+    setIsPlaying(true);
+  };
+
+  const handleCloseBhajanModal = () => {
+    setModalBhajan(null);
+    setIsPlaying(false);
+    setPlayingId(null);
+  };
+
+  const handleOpenVideoModal = (video) => {
+    setModalVideo(video);
+    setPlayingId(video.id);
+    setIsPlaying(true);
+  };
+
+  const handleCloseVideoModal = () => {
+    setModalVideo(null);
+    setIsPlaying(false);
+    setPlayingId(null);
   };
 
   const getTabCount = (tab) => {
@@ -84,60 +116,83 @@ function SearchContent() {
     return [];
   };
 
-  const getTypeIcon = (type) => {
-    const icons = {
-      bhajan: <Music className="w-4 h-4" />,
-      video: <Video className="w-4 h-4" />,
-      temple: <Building className="w-4 h-4" />,
-      story: <BookOpen className="w-4 h-4" />,
-      festival: <Calendar className="w-4 h-4" />,
-    };
-    return icons[type] || <Star className="w-4 h-4" />;
-  };
+  // ─── Render Card Based on Type ───
+  const renderResultCard = (item) => {
+    const isPlayingThis = playingId === item.id;
 
-  const getTypeColor = (type) => {
-    const colors = {
-      bhajan: 'bg-saffron/10 text-saffron',
-      video: 'bg-blue-500/10 text-blue-500',
-      temple: 'bg-purple-500/10 text-purple-500',
-      story: 'bg-emerald-500/10 text-emerald-500',
-      festival: 'bg-rose-500/10 text-rose-500',
-    };
-    return colors[type] || 'bg-gray-500/10 text-gray-500';
-  };
-
-  const getTypeLabel = (type) => {
-    const labels = {
-      bhajan: 'Bhajan',
-      video: 'Video',
-      temple: 'Temple',
-      story: 'Story',
-      festival: 'Festival',
-    };
-    return labels[type] || type;
-  };
-
-  const getHref = (item) => {
-    const routes = {
-      bhajan: `/bhajans`,
-      video: `/spiritual-videos`,
-      temple: `/temples`,
-      story: `/stories`,
-      festival: `/festivals`,
-    };
-    return routes[item.type] || '/';
+    switch (item.type) {
+      case 'bhajan':
+        return (
+          <div key={`bhajan-${item.id}`} className="w-full">
+            <BhajanCard
+              bhajan={item}
+              isPlaying={isPlayingThis}
+              onPlay={() => handleOpenBhajanModal(item)}
+              onClick={() => handleOpenBhajanModal(item)}
+              onLike={() => {}}
+              isLiked={false}
+            />
+          </div>
+        );
+      
+      case 'video':
+        return (
+          <div key={`video-${item.id}`} className="w-full">
+            <VideoCard
+              video={item}
+              isPlaying={isPlayingThis}
+              onPlay={() => handleOpenVideoModal(item)}
+              onClick={() => handleOpenVideoModal(item)}
+              onLike={() => {}}
+              isLiked={false}
+            />
+          </div>
+        );
+      
+      case 'temple':
+        return (
+          <Link href={`/temples/${item.slug || item.id}`} key={`temple-${item.id}`} className="w-full block">
+            <TempleCard temple={item} onLike={() => {}} isLiked={false} />
+          </Link>
+        );
+      
+      case 'story':
+        return (
+          <Link href={`/stories/${item.slug || item.id}`} key={`story-${item.id}`} className="w-full block">
+            <StoryCard story={item} onLike={() => {}} isLiked={false} />
+          </Link>
+        );
+      
+      case 'festival':
+        return (
+          <Link href={`/festivals/${item.slug || item.id}`} key={`festival-${item.id}`} className="w-full block">
+            <FestivalCard festival={item} />
+          </Link>
+        );
+      
+      default:
+        return null;
+    }
   };
 
   const resultsToShow = getResultsToShow();
 
+  // ─── Grid classes based on results count ───
+  const getGridClasses = () => {
+    const count = resultsToShow.length;
+    if (count === 1) return 'grid-cols-1 max-w-xs mx-auto';
+    if (count === 2) return 'grid-cols-1 sm:grid-cols-5 gap-4';
+    return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5';
+  };
+
   return (
     <div className="min-h-screen bg-cream-50/50 dark:bg-brown-900/50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-brown-600 dark:text-cream-50/60 hover:text-saffron transition-colors mb-4 group"
+            className="inline-flex cursor-pointer items-center gap-2 text-brown-600 dark:text-cream-50/60 hover:text-saffron transition-colors mb-4 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             Back
@@ -192,88 +247,16 @@ function SearchContent() {
           </div>
         )}
 
-        {/* Results */}
+        {/* Results - Grid Layout */}
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <div className="w-8 h-8 border-3 border-saffron border-t-transparent rounded-full animate-spin" />
           </div>
         ) : resultsToShow.length > 0 ? (
-          <div className="space-y-4">
-            {resultsToShow.map((item, index) => (
-              <motion.div
-                key={`${item.type}-${item.id}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link
-                  href={getHref(item)}
-                  className="group block bg-white dark:bg-brown-800/80 rounded-xl border border-gold/20 dark:border-gold/10 p-4 hover:shadow-xl hover:border-gold/40 transition-all duration-300 hover:-translate-y-1"
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Icon */}
-                    <div
-                      className={`p-2 rounded-full ${getTypeColor(
-                        item.type
-                      )} flex-shrink-0`}
-                    >
-                      {getTypeIcon(item.type)}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getTypeColor(
-                            item.type
-                          )}`}
-                        >
-                          {getTypeLabel(item.type)}
-                        </span>
-                        {item.category && (
-                          <span className="text-xs text-brown-500 dark:text-cream-50/40 capitalize">
-                            {item.category}
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-base font-bold text-brown-900 dark:text-cream-50 group-hover:text-saffron transition-colors line-clamp-2">
-                        {item.title || item.name}
-                      </h3>
-                      {item.description && (
-                        <p className="text-sm text-brown-600 dark:text-cream-50/50 mt-1 line-clamp-2">
-                          {item.description}
-                        </p>
-                      )}
-                      {item.artist && (
-                        <p className="text-xs text-brown-500 dark:text-cream-50/40 mt-1">
-                          🎵 {item.artist}
-                        </p>
-                      )}
-                      {item.speaker && (
-                        <p className="text-xs text-brown-500 dark:text-cream-50/40 mt-1">
-                          🎙️ {item.speaker}
-                        </p>
-                      )}
-                      {item.location && (
-                        <p className="text-xs text-brown-500 dark:text-cream-50/40 mt-1">
-                          📍 {item.location}
-                        </p>
-                      )}
-                      {item.deity && (
-                        <p className="text-xs text-brown-500 dark:text-cream-50/40 mt-1">
-                          🛕 {item.deity}
-                        </p>
-                      )}
-                      {item.date && (
-                        <p className="text-xs text-brown-500 dark:text-cream-50/40 mt-1">
-                          📅 {item.date}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+          <div className={`grid ${getGridClasses()} gap-4`}>
+            <AnimatePresence>
+              {resultsToShow.map((item) => renderResultCard(item))}
+            </AnimatePresence>
           </div>
         ) : query ? (
           <div className="text-center py-20">
@@ -297,6 +280,33 @@ function SearchContent() {
           </div>
         )}
       </div>
+
+      {/* ─── Bhajan Player Modal ─── */}
+      <BhajanPlayerModal
+        bhajan={modalBhajan}
+        isOpen={!!modalBhajan}
+        onClose={handleCloseBhajanModal}
+        onNext={() => {}}
+        onPrev={() => {}}
+        onLike={() => {}}
+        isLiked={false}
+        isPlaying={isPlaying}
+        onPlay={() => {}}
+        allBhajans={searchResults.bhajans}
+      />
+
+      {/* ─── Video Player Modal ─── */}
+      <VideoPlayerModal
+        video={modalVideo}
+        isOpen={!!modalVideo}
+        onClose={handleCloseVideoModal}
+        onNext={() => {}}
+        onPrev={() => {}}
+        onLike={() => {}}
+        isLiked={false}
+        isPlaying={isPlaying}
+        onPlay={() => {}}
+      />
     </div>
   );
 }

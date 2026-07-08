@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className={`min-h-screen overflow-hidden ${isDark ? "dark bg-brown-900" : "bg-cream-50"}`}>
+<div className={`relative min-h-screen overflow-hidden ${isDark ? "dark bg-brown-900" : "bg-cream-50"}`}>
       {/* Animated Background */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div
@@ -107,7 +107,7 @@ export default function AdminLoginPage() {
         <div className="absolute bottom-10 right-10 text-8xl text-gold/5 font-serif">ॐ</div>
       </div>
 
-      <div className="mx-auto grid min-h-screen w-full max-w-6xl grid-cols-1 items-center gap-8 px-4 py-8 lg:grid-cols-2">
+<div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-8 px-4 pt-8 pb-8 sm:pt-12 lg:grid-cols-2 lg:items-center">
         {/* Left Side - Branding */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
