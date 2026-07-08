@@ -338,15 +338,6 @@ export default function HeroManager({ data, onSave, isDark, saving }) {
     );
   };
 
-  // Check if any media exists for the device
-  const hasDeviceMedia = (device) => {
-    if (device === 'desktop') {
-      return hero.desktopImage || hero.desktopVideo;
-    } else {
-      return hero.mobileImage || hero.mobileVideo;
-    }
-  };
-
   return (
     <div className={`rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg ${
       isDark 
