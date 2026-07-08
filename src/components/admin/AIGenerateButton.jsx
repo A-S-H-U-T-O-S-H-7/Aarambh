@@ -10,7 +10,8 @@ export default function AIGenerateButton({
   onGenerated, 
   label = "Generate with AI",
   size = "sm",
-  disabled = false  // ← ADD THIS LINE
+  disabled = false,
+  generateType = "seo" // "seo", "temple", "story", "video", "festival"
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [requestsLeft, setRequestsLeft] = useState(20);
@@ -59,7 +60,7 @@ export default function AIGenerateButton({
   };
   
   const handleGenerate = async () => {
-    if (disabled) return; // ← ADD THIS LINE
+    if (disabled) return;
     
     if (requestsLeft <= 0) {
       toast.error("Daily limit reached (20 requests). Please try again tomorrow.");
@@ -79,7 +80,10 @@ export default function AIGenerateButton({
       const response = await fetch("/api/generate-seo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: cleanContent }),
+        body: JSON.stringify({ 
+          content: cleanContent,
+          type: generateType
+        }),
       });
       
       const data = await response.json();
@@ -87,6 +91,7 @@ export default function AIGenerateButton({
       if (data.success) {
         incrementRequestCount();
         
+        // ─── COMMON FIELDS (All Types) ───
         if (data.metatitle) onGenerated("metatitle", data.metatitle);
         if (data.metadesc) onGenerated("metadesc", data.metadesc);
         if (data.metakeywords) onGenerated("metakeywords", data.metakeywords);
@@ -94,10 +99,31 @@ export default function AIGenerateButton({
           const tagsArray = data.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
           onGenerated("tags", tagsArray);
         }
-        if (data.shortDescription) onGenerated("description", data.shortDescription);
+        
+        // ─── STORY / VIDEO FIELDS ───
+        if (data.shortDescription) onGenerated("shortDescription", data.shortDescription);
         if (data.moral) onGenerated("moral", data.moral);
         
-        toast.success(`SEO generated! ${requestsLeft - 1} requests left today`);
+        // ─── TEMPLE / FESTIVAL FIELDS ───
+        if (data.significance) onGenerated("significance", data.significance);
+        if (data.festivals) {
+          let festivalsArray = [];
+          if (Array.isArray(data.festivals)) {
+            festivalsArray = data.festivals;
+          } else if (typeof data.festivals === 'string') {
+            festivalsArray = data.festivals.split(',').map(f => f.trim()).filter(f => f);
+          }
+          if (festivalsArray.length > 0) {
+            onGenerated("festivals", festivalsArray);
+          }
+        }
+        
+        // ─── VIDEO / BHAJAN SPECIFIC ───
+        if (data.duration) onGenerated("duration", data.duration);
+        if (data.artist) onGenerated("artist", data.artist);
+        if (data.lyrics) onGenerated("lyrics", data.lyrics);
+        
+        toast.success(`Content generated! ${requestsLeft - 1} requests left today`);
       } else {
         toast.error(data.error || "Failed to generate");
       }

@@ -174,9 +174,11 @@ export const saveWisdom = async (data) => {
 // Save/Update song
 export const saveSong = async (data, audioFile = null) => {
   try {
-    let audioUrl = data.url || data.songUrl || '';
+    let audioUrl = '';
 
+    // Only handle audio file upload
     if (audioFile) {
+      // Delete old audio if exists
       if (data.oldAudioUrl) {
         await deleteSongAudio(data.oldAudioUrl);
       }
@@ -184,13 +186,15 @@ export const saveSong = async (data, audioFile = null) => {
     }
 
     if (!audioUrl?.trim()) {
-      return { success: false, error: 'Please upload an audio file or enter a URL' };
+      return { success: false, error: 'Please upload an audio file' };
     }
 
+    // Simple song data with only the audio URL
     const songData = {
+      url: audioUrl,
+      // Keep existing metadata if present, but don't require it
       title: data.title || '',
       artist: data.artist || '',
-      url: audioUrl,
       isPlaying: data.isPlaying !== undefined ? data.isPlaying : true,
       festival: data.festival || '',
       updatedAt: new Date().toISOString(),

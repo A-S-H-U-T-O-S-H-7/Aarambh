@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { FaArrowLeft, FaArrowRight, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import { GiSparkles } from 'react-icons/gi';
-import FestivalCountdown from './FestivalCountdown';
+import FestivalCountdown from './FestivalCountdown'; 
 
 export default function FestivalCarousel({ festivals }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -57,7 +57,7 @@ export default function FestivalCarousel({ festivals }) {
               />
               {/* Gradient overlays */}
               <div className="absolute inset-0 bg-gradient-to-t from-white/95 via-transparent to-transparent dark:from-[#1A130E]/95 dark:via-[#1A130E]/60 dark:to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-r from-white via-white/50 to-transparent dark:from-[#1A130E]/75 dark:via-transparent dark:to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-white via-transparent to-transparent dark:from-[#1A130E]/75 dark:via-transparent dark:to-transparent" />
             </div>
 
             {/* Content - Using Wave Fonts (from Code A) */}
@@ -83,7 +83,7 @@ export default function FestivalCarousel({ festivals }) {
                 </h3>
 
                 {/* Description - Wave style */}
-                <p className="text-[#6B5640] dark:text-[#C9B79C] text-xs sm:text-sm leading-relaxed line-clamp-2 mb-3">
+                <p className="text-[#6B5640] dark:text-[#C9B79C] max-w-md text-xs sm:text-sm leading-relaxed line-clamp-2 mb-3">
                   {festival.description}
                 </p>
 
