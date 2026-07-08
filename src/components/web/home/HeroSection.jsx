@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ChevronRight, Play, Sparkles, Volume2, VolumeX, Pause, Music, Headphones } from 'lucide-react';
+import { ChevronRight, Play, Sparkles, Volume2, VolumeX, Pause, Music } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 
@@ -36,8 +36,9 @@ const DEFAULT_VALUES = {
   ctaText: 'Explore Now',
   ctaLink: '/stories',
   desktopImage: '/Herocopy1.png',
+  desktopVideo: '',
   mobileImage: '/MobHerobanner3.png',
-  videoUrl: '',
+  mobileVideo: '',
   mantra: 'ॐ नमः शिवाय',
   mantraTranslation: 'I bow to Lord Shiva',
   songUrl: '/music.mpeg',
@@ -67,8 +68,9 @@ const resolveHeroContent = (heroData = {}, mantraData = {}, songData = {}) => {
     ctaText: heroData.ctaText?.trim() || DEFAULT_VALUES.ctaText,
     ctaLink: heroData.ctaLink?.trim() || DEFAULT_VALUES.ctaLink,
     desktopImage: heroData.desktopImage?.trim() || DEFAULT_VALUES.desktopImage,
+    desktopVideo: heroData.desktopVideo?.trim() || '',
     mobileImage: heroData.mobileImage?.trim() || DEFAULT_VALUES.mobileImage,
-    videoUrl: heroData.videoUrl?.trim() || '',
+    mobileVideo: heroData.mobileVideo?.trim() || '',
     mantra: mantraData.text?.trim() || DEFAULT_VALUES.mantra,
     mantraTranslation: mantraData.translation?.trim() || DEFAULT_VALUES.mantraTranslation,
     songUrl: songUrl,
@@ -79,20 +81,21 @@ const resolveHeroContent = (heroData = {}, mantraData = {}, songData = {}) => {
 export default function HeroSection() {
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
-  const videoRef = useRef(null);
-  const mouseRef  = useRef({ x: -9999, y: -9999 });
+  const desktopVideoRef = useRef(null);
+  const mobileVideoRef = useRef(null);
+  const mouseRef = useRef({ x: -9999, y: -9999 });
   const animIdRef = useRef(null);
 
   // ============ STATE ============
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [content, setContent] = useState(DEFAULT_VALUES);
   const [loading, setLoading] = useState(true);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [audioError, setAudioError] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isDesktopVideoLoaded, setIsDesktopVideoLoaded] = useState(false);
+  const [isMobileVideoLoaded, setIsMobileVideoLoaded] = useState(false);
 
   // ============ FETCH DYNAMIC CONTENT ============
   useEffect(() => {
@@ -156,9 +159,6 @@ export default function HeroSection() {
   };
 
   // ============ ATTEMPT AUTOPLAY ON LOAD ============
-  // Most browsers block unmuted autoplay until the visitor has interacted with
-  // the site at least once (e.g. a returning visitor). This tries immediately;
-  // if it's blocked, the click-anywhere fallback below picks up the first tap.
   useEffect(() => {
     if (!content.songAutoPlay || !content.songUrl || audioError || loading) return;
     if (!audioRef.current) return;
@@ -170,11 +170,9 @@ export default function HeroSection() {
         setHasUserInteracted(true);
       })
       .catch((err) => {
-        // Autoplay blocked by the browser — waiting for user interaction.
         console.warn('Autoplay blocked, waiting for interaction:', err);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content.songUrl, content.songAutoPlay, loading, audioError]);
+  }, [content.songUrl, content.songAutoPlay, loading, audioError, hasUserInteracted]);
 
   // ============ AUTO-PLAY ON USER INTERACTION (fallback) ============
   useEffect(() => {
@@ -216,7 +214,7 @@ export default function HeroSection() {
     const ctx = canvas.getContext('2d');
 
     const resize = () => {
-      canvas.width  = canvas.parentElement.offsetWidth;
+      canvas.width = canvas.parentElement.offsetWidth;
       canvas.height = canvas.parentElement.offsetHeight;
     };
     resize();
@@ -242,43 +240,43 @@ export default function HeroSection() {
       constructor() {
         this.ox = Math.random() * canvas.width;
         this.oy = Math.random() * canvas.height;
-        this.x  = this.ox;
-        this.y  = this.oy;
+        this.x = this.ox;
+        this.y = this.oy;
         this.vx = 0;
         this.vy = 0;
-        this.size   = Math.random() * (PARTICLE_SIZE_MAX - PARTICLE_SIZE_MIN) + PARTICLE_SIZE_MIN;
+        this.size = Math.random() * (PARTICLE_SIZE_MAX - PARTICLE_SIZE_MIN) + PARTICLE_SIZE_MIN;
         this.baseOp = Math.random() * 0.25 + 0.10;
-        this.op     = this.baseOp;
-        this.dx     = (Math.random() - 0.5) * 0.15;
-        this.dy     = (Math.random() - 0.5) * 0.15;
+        this.op = this.baseOp;
+        this.dx = (Math.random() - 0.5) * 0.15;
+        this.dy = (Math.random() - 0.5) * 0.15;
       }
 
       update() {
         const { x: mx, y: my } = mouseRef.current;
-        const ddx  = this.x - mx;
-        const ddy  = this.y - my;
+        const ddx = this.x - mx;
+        const ddy = this.y - my;
         const dist = Math.sqrt(ddx * ddx + ddy * ddy);
 
         if (dist < INFLUENCE_RADIUS && dist > 0) {
           const force = (INFLUENCE_RADIUS - dist) / INFLUENCE_RADIUS;
           this.vx += (ddx / dist) * force * REPEL_STRENGTH;
           this.vy += (ddy / dist) * force * REPEL_STRENGTH;
-          this.op  = Math.min(0.85, this.baseOp + force * 0.5);
+          this.op = Math.min(0.85, this.baseOp + force * 0.5);
         } else {
           this.vx += (this.ox - this.x) * 0.04;
           this.vy += (this.oy - this.y) * 0.04;
-          this.op  += (this.baseOp - this.op) * 0.06;
+          this.op += (this.baseOp - this.op) * 0.06;
         }
 
         this.ox += this.dx;
         this.oy += this.dy;
-        if (this.ox < 0 || this.ox > canvas.width)  this.dx *= -1;
+        if (this.ox < 0 || this.ox > canvas.width) this.dx *= -1;
         if (this.oy < 0 || this.oy > canvas.height) this.dy *= -1;
 
         this.vx *= 0.87;
         this.vy *= 0.87;
-        this.x  += this.vx;
-        this.y  += this.vy;
+        this.x += this.vx;
+        this.y += this.vy;
       }
 
       draw() {
@@ -288,9 +286,9 @@ export default function HeroSection() {
           this.x, this.y, 0,
           this.x, this.y, this.size * 2.5
         );
-        g.addColorStop(0,   'rgba(255,220,70,1)');
+        g.addColorStop(0, 'rgba(255,220,70,1)');
         g.addColorStop(0.4, 'rgba(255,180,30,0.6)');
-        g.addColorStop(1,   'rgba(255,140,10,0)');
+        g.addColorStop(1, 'rgba(255,140,10,0)');
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fillStyle = g;
@@ -326,15 +324,26 @@ export default function HeroSection() {
     ctaText,
     ctaLink,
     desktopImage,
+    desktopVideo,
     mobileImage,
-    videoUrl,
+    mobileVideo,
     mantra,
     mantraTranslation,
     songUrl,
   } = content;
 
-  const bgImage = isMobile ? mobileImage : desktopImage;
-  const hasVideo = videoUrl && videoUrl.trim() !== '';
+  // Determine which media to show for desktop and mobile
+  // Video takes priority over image for each device
+  const hasDesktopVideo = desktopVideo && desktopVideo.trim() !== '';
+  const hasDesktopImage = desktopImage && desktopImage.trim() !== '';
+  const hasMobileVideo = mobileVideo && mobileVideo.trim() !== '';
+  const hasMobileImage = mobileImage && mobileImage.trim() !== '';
+
+  const showDesktopVideo = hasDesktopVideo;
+  const showDesktopImage = !hasDesktopVideo && hasDesktopImage;
+  const showMobileVideo = hasMobileVideo;
+  const showMobileImage = !hasMobileVideo && hasMobileImage;
+
   const hasValidAudio = songUrl && songUrl.trim() !== '';
 
   return (
@@ -342,33 +351,91 @@ export default function HeroSection() {
       className="hero-section-container relative flex items-center overflow-hidden"
       style={{ height: isMobile ? 'clamp(520px, 75vh, 600px)' : 'clamp(480px, 98vh, 680px)' }}
     >
-      {/* ── Background Video ── */}
-      {hasVideo && (
+      {/* ── Desktop Background Video ── */}
+      {!isMobile && showDesktopVideo && (
         <video
-          ref={videoRef}
-          src={videoUrl}
+          ref={desktopVideoRef}
+          src={desktopVideo}
           className="absolute inset-0 w-full h-full object-cover z-0"
           autoPlay
           loop
           muted
           playsInline
-          onLoadedData={() => setIsVideoLoaded(true)}
+          onLoadedData={() => setIsDesktopVideoLoaded(true)}
         />
       )}
 
-      {/* ── Background Image (fallback if no video or video not loaded) ── */}
-      {(!hasVideo || !isVideoLoaded) && (
+      {/* ── Mobile Background Video ── */}
+      {isMobile && showMobileVideo && (
+        <video
+          ref={mobileVideoRef}
+          src={mobileVideo}
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          autoPlay
+          loop
+          muted
+          playsInline
+          onLoadedData={() => setIsMobileVideoLoaded(true)}
+        />
+      )}
+
+      {/* ── Desktop Background Image (fallback if no desktop video) ── */}
+      {!isMobile && showDesktopImage && !showDesktopVideo && (
         <div className="absolute inset-0 z-0">
           <Image
-            src={bgImage}
+            src={desktopImage}
             alt="Aarambh TV – Divine Spiritual Background"
             fill
             priority
             className="object-cover object-top"
             quality={100}
             onError={(e) => {
-              e.target.src = isMobile ? '/MobHerobanner3.png' : '/Herocopy1.png';
+              e.target.src = '/Herocopy1.png';
             }}
+          />
+        </div>
+      )}
+
+      {/* ── Mobile Background Image (fallback if no mobile video) ── */}
+      {isMobile && showMobileImage && !showMobileVideo && (
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={mobileImage}
+            alt="Aarambh TV – Divine Spiritual Background"
+            fill
+            priority
+            className="object-cover object-top"
+            quality={100}
+            onError={(e) => {
+              e.target.src = '/MobHerobanner3.png';
+            }}
+          />
+        </div>
+      )}
+
+      {/* ── Fallback if no media for current device ── */}
+      {!isMobile && !showDesktopVideo && !showDesktopImage && (
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/Herocopy1.png"
+            alt="Aarambh TV – Divine Spiritual Background"
+            fill
+            priority
+            className="object-cover object-top"
+            quality={100}
+          />
+        </div>
+      )}
+
+      {isMobile && !showMobileVideo && !showMobileImage && (
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/MobHerobanner3.png"
+            alt="Aarambh TV – Divine Spiritual Background"
+            fill
+            priority
+            className="object-cover object-top"
+            quality={100}
           />
         </div>
       )}
@@ -405,8 +472,8 @@ export default function HeroSection() {
                 : 'drop-shadow(0 0 4px rgba(255,200,50,0.6))',
             }}
             animate={{
-              y:       [0, -12, 6, 0],
-              x:       [0,  8, -4, 0],
+              y: [0, -12, 6, 0],
+              x: [0, 8, -4, 0],
               opacity: isMobile ? [0.4, 0.7, 0.4] : [0.55, 0.90, 0.60, 0.55],
             }}
             transition={{
@@ -425,9 +492,9 @@ export default function HeroSection() {
       {hasValidAudio && !audioError && (
         <div className={`absolute ${isMobile ? 'top-4 right-4' : 'top-6 right-6'} z-20 flex items-center gap-3`}>
           {/* Music Status Badge - Glowing */}
-          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-md border border-yellow-400/30 shadow-[0_0_30px_rgba(255,215,0,0.15)]">
+          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/30 to-amber-500/30 backdrop-blur-md border border-orange-400/40 shadow-[0_0_30px_rgba(255,165,0,0.25)]">
             <div className="relative">
-              <Music className="w-3.5 h-3.5 text-yellow-400" />
+              <Music className="w-3.5 h-3.5 text-orange-400" />
               <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
             </div>
             <span className="text-[11px] text-white/90 font-medium tracking-wide">
@@ -469,7 +536,7 @@ export default function HeroSection() {
             {isMuted ? (
               <VolumeX className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-400 drop-shadow-[0_2px_10px_rgba(255,0,0,0.3)] relative z-10`} />
             ) : (
-              <Volume2 className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-white drop-shadow-[0_2px_10px_rgba(255,215,0,0.3)] relative z-10`} />
+              <Volume2 className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-orange-400 drop-shadow-[0_2px_10px_rgba(255,165,0,0.3)] relative z-10`} />
             )}
           </button>
         </div>
@@ -682,7 +749,7 @@ export default function HeroSection() {
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <motion.div
               key={i}
-              className="w-1 bg-gold/60 rounded-full"
+              className="w-1 bg-orange-400/60 rounded-full"
               animate={{
                 height: [4, 8 + Math.random() * 12, 4],
                 opacity: [0.3, 0.8, 0.3],
@@ -698,13 +765,17 @@ export default function HeroSection() {
         </div>
       )}
 
-      {/* Actual audio element */}
+      {/* ── Hidden Audio Element ── */}
       {hasValidAudio && !audioError && (
         <audio
           ref={audioRef}
           src={songUrl}
           loop
+          preload="auto"
           onError={() => setAudioError(true)}
+          onLoadedData={() => {
+            // Audio is ready
+          }}
         />
       )}
     </section>
