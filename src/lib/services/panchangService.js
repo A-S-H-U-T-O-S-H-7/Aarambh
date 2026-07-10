@@ -10,7 +10,7 @@ import {
   query,
   where,
   serverTimestamp
-} from 'firebase/firestore';
+} from 'firebase/firestore'; 
 import { fetchAllPanchangData, LOCATIONS } from '@/lib/astro/vedicApi';
 
 const PANCHANG_COLLECTION = 'panchang';

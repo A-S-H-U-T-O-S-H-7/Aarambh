@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { 
   FaQuoteLeft, 
   FaQuoteRight,
-  FaTwitter,
+  FaFacebook,
   FaWhatsapp,
   FaCopy,
   FaCheck,
@@ -45,7 +45,7 @@ export default function WisdomCard({
     const url = window.location.href;
     
     const shareUrls = {
-      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
       whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`,
     };
     
@@ -60,27 +60,33 @@ export default function WisdomCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5 }}
-      className={`relative ${compact ? 'p-4 sm:p-5' : 'p-8 md:p-10'} bg-gradient-to-br ${quote.bgGradient} rounded-2xl border ${quote.borderColor} shadow-xl overflow-hidden ${compact ? 'h-full flex flex-col' : ''} ${className}`}
+      className={`relative ${compact ? 'p-4 sm:p-5' : 'p-8 md:p-10'} rounded-2xl border shadow-xl overflow-hidden ${compact ? 'h-full flex flex-col' : ''} ${className}`}
+      style={{
+        background: `linear-gradient(135deg, ${quote.bgGradient || '#FFF6E5'})`,
+      }}
     >
-      {/* Light-mode-only gradient wash for the compact card — dark mode keeps the existing look untouched */}
+      {/* Dark mode background overlay - FIXED */}
+      <div className="absolute inset-0 bg-white/80 dark:bg-[#1A130E]/95 pointer-events-none" />
+      
+      {/* Light-mode-only gradient wash for the compact card */}
       {compact && (
         <div className="absolute inset-0 bg-gradient-to-br from-[#FFF6E5] via-[#FFFAF0] to-[#FDECC8] dark:opacity-0 pointer-events-none" />
       )}
 
       {/* Decorative Elements */}
-      <div className={`absolute top-0 right-0 ${compact ? 'w-20 h-20' : 'w-32 h-32'} bg-gold/5 rounded-full blur-2xl`} />
-      <div className={`absolute bottom-0 left-0 ${compact ? 'w-16 h-16' : 'w-24 h-24'} bg-saffron/5 rounded-full blur-2xl`} />
+      <div className={`absolute top-0 right-0 ${compact ? 'w-20 h-20' : 'w-32 h-32'} bg-gold/5 rounded-full blur-2xl pointer-events-none`} />
+      <div className={`absolute bottom-0 left-0 ${compact ? 'w-16 h-16' : 'w-24 h-24'} bg-saffron/5 rounded-full blur-2xl pointer-events-none`} />
       
       {/* Floating Om Symbol */}
-      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${compact ? 'text-6xl' : 'text-9xl'} text-gold/5 font-serif opacity-20`}>
+      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${compact ? 'text-6xl' : 'text-9xl'} text-gold/5 font-serif opacity-20 pointer-events-none`}>
         ॐ
       </div>
       
       {/* Quote Markers */}
-      <div className={`absolute top-4 left-4 ${compact ? 'text-xl' : 'text-4xl'} text-gold/20`}>
+      <div className={`absolute top-4 left-4 ${compact ? 'text-xl' : 'text-4xl'} text-gold/20 pointer-events-none`}>
         <FaQuoteLeft />
       </div>
-      <div className={`absolute bottom-4 right-4 ${compact ? 'text-xl' : 'text-4xl'} text-gold/20`}>
+      <div className={`absolute bottom-4 right-4 ${compact ? 'text-xl' : 'text-4xl'} text-gold/20 pointer-events-none`}>
         <FaQuoteRight />
       </div>
 
@@ -136,11 +142,11 @@ export default function WisdomCard({
       {/* Quote Content */}
       <div className={`relative z-10 ${compact ? 'flex-1 flex flex-col min-h-0' : ''}`}>
         <motion.blockquote 
-          className={`font-serif text-brown-800 dark:text-cream-50 leading-relaxed ${
+          className={`font-serif leading-relaxed ${
             compact
               ? 'text-sm sm:text-base mb-3 flex-1 line-clamp-5'
               : 'text-xl md:text-2xl lg:text-3xl mb-6'
-          }`}
+          } text-brown-800 dark:text-cream-50`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -162,17 +168,17 @@ export default function WisdomCard({
             )}
           </div>
 
-          {/* Share Actions */}
+          {/* Share Actions - Replaced Twitter with Facebook */}
           {showShare && (
             <div className="flex items-center space-x-1 shrink-0">
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => handleShare('twitter')}
-                className={`rounded-full bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 text-[#1DA1F2] transition-colors ${compact ? 'p-1.5' : 'p-2'}`}
-                aria-label="Share on Twitter"
+                onClick={() => handleShare('facebook')}
+                className={`rounded-full bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] transition-colors ${compact ? 'p-1.5' : 'p-2'}`}
+                aria-label="Share on Facebook"
               >
-                <FaTwitter className={compact ? 'w-3 h-3' : 'w-4 h-4'} />
+                <FaFacebook className={compact ? 'w-3 h-3' : 'w-4 h-4'} />
               </motion.button>
               
               <motion.button
@@ -223,7 +229,7 @@ export default function WisdomCard({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }}
-          className={`absolute ${compact ? 'bottom-3 right-3 px-2 py-1 text-[10px]' : 'bottom-20 right-6 px-3 py-1.5 text-xs'} bg-green-500 text-white rounded-lg shadow-lg`}
+          className={`absolute ${compact ? 'bottom-3 right-3 px-2 py-1 text-[10px]' : 'bottom-20 right-6 px-3 py-1.5 text-xs'} bg-green-500 text-white rounded-lg shadow-lg z-20`}
         >
           ✓ Copied!
         </motion.div>

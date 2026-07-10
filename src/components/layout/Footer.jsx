@@ -231,6 +231,7 @@ export default function Footer() {
             <p className="text-sm text-cream-50/50">
               © {currentYear} Aarambh TV. All rights reserved.
             </p>
+            <p className="text-brown-900/30 " >Made By Ashutoh Mohanty</p>
             <p className="text-sm text-cream-50/50 flex items-center gap-1">
               Made with
               <Heart className="w-4 h-4 text-divine-red fill-divine-red" />

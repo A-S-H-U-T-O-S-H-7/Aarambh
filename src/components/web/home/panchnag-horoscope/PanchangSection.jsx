@@ -5,14 +5,12 @@ import { motion } from 'framer-motion';
 import { FaCalendarAlt, FaClock, FaHeart, FaOm } from 'react-icons/fa';
 import { GiSunrise, GiSunset, GiSparkles, GiHadesSymbol } from 'react-icons/gi';
 
-
 export default function PanchangSection({ data, language = 'en', mantra = 'ॐ नमः शिवाय' }) {
   const labels = {
     en: {
       title: 'Daily Panchang',
       date: 'Today',
       month: 'Month',
-      samvat: 'Samvat',
       tithi: 'Tithi',
       nakshatra: 'Nakshatra',
       karana: 'Karan',
@@ -27,7 +25,6 @@ export default function PanchangSection({ data, language = 'en', mantra = 'ॐ �
       title: 'दैनिक पञ्चाङ्ग',
       date: 'आज',
       month: 'माह',
-      samvat: 'संवत',
       tithi: 'तिथि',
       nakshatra: 'नक्षत्र',
       karana: 'करण',
@@ -44,7 +41,6 @@ export default function PanchangSection({ data, language = 'en', mantra = 'ॐ �
 
   const panchangItems = [
     { icon: FaCalendarAlt, label: text.month, value: data?.month || '—' },
-    { icon: GiHadesSymbol, label: text.samvat, value: data?.samvat || '—' },
     { icon: FaCalendarAlt, label: text.tithi, value: data?.tithi || '—', sub: data?.tithiDetails || '' },
     { icon: GiHadesSymbol, label: text.nakshatra, value: data?.nakshatra || '—', sub: data?.nakshatraDetails || '' },
     { icon: GiSparkles, label: text.karana, value: data?.karana || data?.karan || '—' },
@@ -87,7 +83,7 @@ export default function PanchangSection({ data, language = 'en', mantra = 'ॐ �
       {/* Glow Effect */}
       <div className="absolute -inset-0.5 bg-gradient-to-r from-[#E8742C]/25 to-[#F4B400]/25 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-      {/* Main Card — clearly elevated above the section bg in both modes */}
+      {/* Main Card */}
       <div className="relative bg-white dark:bg-[#241B14] backdrop-blur-sm rounded-2xl border border-[#F4B400]/20 dark:border-[#F4B400]/20 shadow-xl dark:shadow-black/50 overflow-hidden">
         {/* Decorative Top Gradient */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#E8742C] via-[#F4B400] to-[#E8742C]" />
@@ -118,8 +114,8 @@ export default function PanchangSection({ data, language = 'en', mantra = 'ॐ �
           </div>
         </div>
 
-        {/* Grid Content — tighter padding/gap on mobile, no truncation/cropping */}
-        <div className="p-3 sm:p-6 grid grid-cols-2 gap-2 sm:gap-4">
+        {/* Grid Content - Changed to 3 columns */}
+        <div className="p-3 sm:p-6 grid grid-cols-3 gap-2 sm:gap-4">
           {panchangItems.map((item, index) => {
             const tone = tones[index % tones.length];
             return (
@@ -128,15 +124,17 @@ export default function PanchangSection({ data, language = 'en', mantra = 'ॐ �
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.08 }}
-                className={`flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-xl bg-gradient-to-br ${tone.bg} border ${tone.border} transition-all duration-300 group/item min-w-0`}
+                className={`flex flex-col items-start p-2 sm:p-3 rounded-xl bg-gradient-to-br ${tone.bg} border ${tone.border} transition-all duration-300 group/item min-w-0`}
               >
-                <div className={`p-1.5 rounded-lg ${tone.iconBg} shrink-0`}>
-                  <item.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${tone.icon}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#8C7456] dark:text-[#9C8569] font-medium">
+                <div className="flex items-center space-x-2 w-full">
+                  <div className={`p-1.5 rounded-lg ${tone.iconBg} shrink-0`}>
+                    <item.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${tone.icon}`} />
+                  </div>
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#8C7456] dark:text-[#9C8569] font-medium truncate">
                     {item.label}
                   </p>
+                </div>
+                <div className="mt-1 w-full">
                   <p className="text-xs sm:text-sm font-semibold text-[#3D2B1A] dark:text-[#F0E4D3] break-words leading-snug">
                     {item.value}
                   </p>
@@ -169,8 +167,6 @@ export default function PanchangSection({ data, language = 'en', mantra = 'ॐ �
             </div>
           </div>
         </div>
-        
-
       </div>
     </motion.div>
   );

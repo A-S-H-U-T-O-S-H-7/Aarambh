@@ -204,20 +204,7 @@ export default function HoroscopeSection({ data, language = 'en', onLanguageChan
                 </div>
               </div>
 
-              {/* Compatibility */}
-              {selectedData?.compatibility && (
-                <div className="mt-2 sm:mt-3 p-2 sm:p-2.5 bg-[#FBF3E7] dark:bg-[#1A130E] rounded-lg border border-[#F4B400]/8 min-w-0">
-                  <p className="text-[8px] sm:text-[10px] uppercase tracking-wider text-[#8C7456] dark:text-[#9C8569]">
-                    Compatibility
-                  </p>
-                  <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
-                    <FaUserFriends className="w-3 h-3 text-[#E8742C] dark:text-[#E8825A] shrink-0" />
-                    <p className="text-[11px] sm:text-xs font-medium text-[#3D2B1A] dark:text-[#F0E4D3] break-words">
-                      {selectedCompatibility}
-                    </p>
-                  </div>
-                </div>
-              )}
+              
             </motion.div>
           </AnimatePresence>
         </div>
