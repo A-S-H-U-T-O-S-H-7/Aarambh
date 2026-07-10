@@ -246,7 +246,7 @@ export const updateFestival = async (festivalId, festivalData, imageFiles, exist
 export const getFestivals = async (page = 1, searchTerm = '', statusFilter = 'all', featuredFilter = 'all') => {
   try {
     const festivalsRef = collection(db, FESTIVALS_COLLECTION);
-    let constraints = [orderBy('createdAt', 'desc'), limit(100)];
+    let constraints = [orderBy('createdAt', 'desc')];
     
     if (statusFilter !== 'all') {
       constraints.unshift(where('status', '==', statusFilter));

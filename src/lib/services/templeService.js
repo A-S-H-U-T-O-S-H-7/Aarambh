@@ -179,7 +179,7 @@ export const updateTemple = async (templeId, templeData, imageFiles, existingIma
 export const getTemples = async (page = 1, searchTerm = '', statusFilter = 'all', categoryFilter = 'all', featuredFilter = 'all') => {
   try {
     const templesRef = collection(db, TEMPLES_COLLECTION);
-    let constraints = [orderBy('createdAt', 'desc'), limit(100)];
+    let constraints = [orderBy('createdAt', 'desc')];
     
     if (statusFilter !== 'all') {
       constraints.unshift(where('status', '==', statusFilter));

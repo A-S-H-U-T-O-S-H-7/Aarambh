@@ -181,7 +181,7 @@ export const updateMedia = async (mediaId, mediaData) => {
 export const getMedia = async (page = 1, searchTerm = '', statusFilter = 'all', typeFilter = 'all', featuredFilter = 'all') => {
   try {
     const mediaRef = collection(db, MEDIA_COLLECTION);
-    let constraints = [orderBy('createdAt', 'desc'), limit(100)];
+    let constraints = [orderBy('createdAt', 'desc')];
     
     if (statusFilter !== 'all') {
       constraints.unshift(where('status', '==', statusFilter));

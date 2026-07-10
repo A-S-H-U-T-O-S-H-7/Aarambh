@@ -231,7 +231,7 @@ export const updateStory = async (storyId, storyData, imageFiles, existingImages
 export const getStories = async (page = 1, searchTerm = '', statusFilter = 'all', featuredFilter = 'all') => {
   try {
     const storiesRef = collection(db, STORIES_COLLECTION);
-    let constraints = [orderBy('createdAt', 'desc'), limit(100)];
+    let constraints = [orderBy('createdAt', 'desc')];
     
     if (statusFilter !== 'all') {
       constraints.unshift(where('status', '==', statusFilter));
