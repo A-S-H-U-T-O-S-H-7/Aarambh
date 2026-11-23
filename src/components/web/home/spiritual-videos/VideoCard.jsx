@@ -88,7 +88,10 @@ export default function VideoCard({ video, isPlaying, onPlay, onLike, isLiked, o
     onLike?.(video.id);
   };
 
-  const thumbnailUrl = video.thumbnail || getYouTubeThumbnail(video.youtubeUrl);
+  // hqdefault (~20KB) instead of maxres (100KB+) keeps long grids light
+  const thumbnailUrl = video.videoId
+    ? `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`
+    : video.thumbnail || getYouTubeThumbnail(video.youtubeUrl);
 
   return (
     <motion.div
@@ -115,6 +118,8 @@ export default function VideoCard({ video, isPlaying, onPlay, onLike, isLiked, o
           <img
             src={thumbnailUrl}
             alt={video.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             onError={() => setImgError(true)}
           />

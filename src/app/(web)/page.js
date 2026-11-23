@@ -8,6 +8,7 @@ import FestivalHub from '@/components/web/home/festival/FestivalHub';
 import TempleDirectory from '@/components/web/home/temple/TempleDirectory';
 import SpiritualStories from '@/components/web/home/story/SpiritualStories';
 import SpiritualVideos from '@/components/web/home/spiritual-videos/SpiritualVideos';
+import ShortsSection from '@/components/web/home/shorts/ShortsSection';
 
 export default function Home() {
   return (
@@ -18,8 +19,9 @@ export default function Home() {
         <DailySpiritualGuide/>
         <MyAstroBanner/>
         <BhajanHub/>
-        <FestivalHub/>
+        <ShortsSection />
         <SpiritualVideos />
+        <FestivalHub/>
         <SpiritualStories />
         <TempleDirectory />
         <NewsletterSection/>

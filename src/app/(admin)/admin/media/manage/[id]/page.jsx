@@ -10,7 +10,7 @@ import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import MediaForm from "@/components/admin/media/MediaForm";
 import MediaSidebar from "@/components/admin/media/MediaSidebar";
-import { getMediaById, createMedia, updateMedia, getYouTubeId, generateSlug } from "@/lib/services/mediaService";
+import { getMediaById, createMedia, updateMedia, getYouTubeId, generateSlug, MEDIA_CATEGORIES } from "@/lib/services/mediaService";
 
 export default function ManageMediaPage() {
   const { theme } = useThemeStore();
@@ -49,19 +49,7 @@ export default function ManageMediaPage() {
   const [isFetching, setIsFetching] = useState(isEditMode);
   const [oldMediaData, setOldMediaData] = useState(null);
   
-  // Default categories with proper options
-  const [categories] = useState([
-    { id: 'bhakti', name: 'Bhakti', slug: 'bhakti' },
-    { id: 'spiritual', name: 'Spiritual', slug: 'spiritual' },
-    { id: 'meditation', name: 'Meditation', slug: 'meditation' },
-    { id: 'devotional', name: 'Devotional', slug: 'devotional' },
-    { id: 'festival', name: 'Festival', slug: 'festival' },
-    { id: 'mantra', name: 'Mantra', slug: 'mantra' },
-    { id: 'aarti', name: 'Aarti', slug: 'aarti' },
-    { id: 'kirtan', name: 'Kirtan', slug: 'kirtan' },
-    { id: 'chalisa', name: 'Chalisa', slug: 'chalisa' },
-    { id: 'satsang', name: 'Satsang', slug: 'satsang' },
-  ]);
+  const categories = MEDIA_CATEGORIES;
   const [loadingCategories] = useState(false); // Always false since we have static categories
 
   useEffect(() => {

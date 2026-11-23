@@ -1,7 +1,7 @@
 // app/(web)/spiritual-videos/page.jsx
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,7 +22,8 @@ import { GiLotus } from 'react-icons/gi';
 import VideoCard from '@/components/web/home/spiritual-videos/VideoCard';
 import VideoPlayerModal from '@/components/web/home/spiritual-videos/VideoPlayerModal';
 import {
-  getVideos,
+  getVideosPage,
+  countPublishedVideos,
   getTrendingVideos,
   incrementVideoView,
   toggleVideoLike,
@@ -118,6 +119,8 @@ function StickyNowPlaying({ video, isPlaying, onOpen, onToggle, onNext, onPrev, 
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 24;
+
 export default function SpiritualVideosPage() {
   const router = useRouter();
   const [allVideos, setAllVideos] = useState([]);
@@ -127,14 +130,28 @@ export default function SpiritualVideosPage() {
   const [likedVideos, setLikedVideos] = useState([]);
   const [modalVideo, setModalVideo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalVideos, setTotalVideos] = useState(null);
+  const loaderRef = useRef(null);
+  // Refs so loadMore keeps one identity (the observer isn't torn down on every
+  // page) and can never fire twice for the same page
+  const cursorRef = useRef(null);
+  const busyRef = useRef(false);
 
   useEffect(() => {
     const fetchVideos = async () => {
       try {
         setLoading(true);
-        const result = await getVideos(60, 'standard');
+        const [result, total] = await Promise.all([
+          getVideosPage(PAGE_SIZE, 'standard'),
+          countPublishedVideos('standard'),
+        ]);
+        setTotalVideos(total);
         if (result.success) {
           setAllVideos(result.videos || []);
+          cursorRef.current = result.cursor;
+          setHasMore(result.hasMore);
         }
       } catch (error) {
         console.error('Error fetching spiritual videos:', error);
@@ -145,6 +162,43 @@ export default function SpiritualVideosPage() {
 
     fetchVideos();
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (busyRef.current || !cursorRef.current) return;
+    busyRef.current = true;
+    setLoadingMore(true);
+    try {
+      const result = await getVideosPage(PAGE_SIZE, 'standard', cursorRef.current);
+      if (result.success) {
+        cursorRef.current = result.cursor;
+        setAllVideos((prev) => {
+          const seen = new Set(prev.map((v) => v.id));
+          return [...prev, ...result.videos.filter((v) => !seen.has(v.id))];
+        });
+        setHasMore(result.hasMore);
+      } else {
+        setHasMore(false);
+      }
+    } finally {
+      busyRef.current = false;
+      setLoadingMore(false);
+    }
+  }, []);
+
+  // Infinite scroll: start fetching well before the bottom so new cards are
+  // ready by the time the viewer gets there
+  useEffect(() => {
+    const node = loaderRef.current;
+    if (!node || !hasMore || loading) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { rootMargin: '800px 0px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadMore]);
 
   const categoryCounts = useMemo(() => {
     const counts = { all: allVideos.length };
@@ -286,6 +340,14 @@ export default function SpiritualVideosPage() {
           <p className="mt-3 text-brown-500 dark:text-cream-50/50 max-w-xl mx-auto">
             Explore insightful discourses, soulful bhajans, and spiritual documentaries.
           </p>
+          {totalVideos !== null && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 bg-white/80 dark:bg-brown-800/80 backdrop-blur-sm rounded-full border border-gold/20 shadow-sm">
+              <FaVideo className="w-3.5 h-3.5 text-saffron" />
+              <span className="text-sm font-semibold text-brown-700 dark:text-cream-50/80">
+                {totalVideos.toLocaleString('en-IN')} videos
+              </span>
+            </div>
+          )}
         </motion.div>
 
         {/* ── Search ── */}
@@ -339,7 +401,9 @@ export default function SpiritualVideosPage() {
             {/* ── Results meta ── */}
             <div className="flex items-center justify-between mb-5 text-sm">
               <span className="text-brown-500 dark:text-cream-50/50">
-                {filteredVideos.length} video{filteredVideos.length !== 1 ? 's' : ''}
+                {activeCategory === 'all' && !searchQuery.trim() && totalVideos !== null
+                  ? `Showing ${allVideos.length.toLocaleString('en-IN')} of ${totalVideos.toLocaleString('en-IN')} videos`
+                  : `${filteredVideos.length} video${filteredVideos.length !== 1 ? 's' : ''}`}
                 {searchQuery ? ` for "${searchQuery}"` : ''}
               </span>
               {activeCategory !== 'all' && (
@@ -354,24 +418,32 @@ export default function SpiritualVideosPage() {
 
             {/* ── Grid ── */}
             {filteredVideos.length > 0 ? (
-              <motion.div
-                layout
-                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
-              >
-                <AnimatePresence>
-                  {filteredVideos.map((video) => (
-                    <VideoCard
-                      key={video.id}
-                      video={video}
-                      isPlaying={playingId === video.id}
-                      onPlay={() => handleOpenModal(video)}
-                      onLike={handleLike}
-                      isLiked={isLiked(video.id)}
-                      onClick={handleOpenModal}
-                    />
+              // Plain grid: a framer-motion "layout" grid re-measures every card
+              // on each appended page, which is what made scrolling stutter
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                {filteredVideos.map((video) => (
+                  <VideoCard
+                    key={video.id}
+                    video={video}
+                    isPlaying={playingId === video.id}
+                    onPlay={() => handleOpenModal(video)}
+                    onLike={handleLike}
+                    isLiked={isLiked(video.id)}
+                    onClick={handleOpenModal}
+                  />
+                ))}
+                {/* Placeholders while the next page loads keep the grid from jumping */}
+                {loadingMore &&
+                  [...Array(4)].map((_, i) => (
+                    <div key={'sk' + i} className="animate-pulse rounded-xl overflow-hidden border border-gold/10 bg-white/60 dark:bg-brown-800/60">
+                      <div className="aspect-video bg-gold/10" />
+                      <div className="p-3 space-y-2">
+                        <div className="h-3 rounded-full w-4/5 bg-gold/10" />
+                        <div className="h-3 rounded-full w-3/5 bg-gold/10" />
+                      </div>
+                    </div>
                   ))}
-                </AnimatePresence>
-              </motion.div>
+              </div>
             ) : (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -392,6 +464,26 @@ export default function SpiritualVideosPage() {
                   Reset filters
                 </button>
               </motion.div>
+            )}
+
+            {/* ── Load more ── */}
+            {hasMore && (
+              <div ref={loaderRef} className="flex justify-center items-center py-10 mt-4 min-h-[88px]">
+                {!loadingMore && (
+                  <button
+                    onClick={loadMore}
+                    className="px-8 py-3 bg-gradient-to-r from-saffron to-gold text-white text-sm font-semibold rounded-full hover:shadow-lg hover:shadow-gold/30 transition-all cursor-pointer"
+                  >
+                    Load more videos
+                  </button>
+                )}
+              </div>
+            )}
+
+            {!hasMore && allVideos.length > 0 && (
+              <p className="text-center py-8 text-sm text-brown-400 dark:text-cream-50/40">
+                You've reached the end of our video library
+              </p>
             )}
           </>
         )}

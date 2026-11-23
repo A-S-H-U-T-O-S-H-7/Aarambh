@@ -3,6 +3,9 @@ import './globals.css';
 import ClientProviders from '@/components/providers/ClientProviders';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import Script from 'next/script';
+
+const GA_ID = 'G-WZ4VRT822E';
 
 export const metadata = {
   metadataBase: new URL('https://aarambhtv.com'),
@@ -57,9 +60,9 @@ export const metadata = {
       'max-snippet': -1,
     },
   },
-  // verification: {
-  //   google: 'your-google-verification-code', // Add when you have it
-  // },
+  verification: {
+    google: 't1W8RaiUcjUwuvuC-QLCPmfQGBz7zt2lWPq2S8CaYOk',
+  },
 };
 
 export const viewport = {
@@ -84,6 +87,20 @@ export default function RootLayout({ children }) {
             
           </div>
         </ClientProviders>
+
+        {/* Google Analytics (GA4) */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}');
+          `}
+        </Script>
       </body>
     </html>
   );

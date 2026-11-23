@@ -14,7 +14,10 @@ import {
   limit,
   serverTimestamp,
   increment,
-  writeBatch
+  writeBatch,
+  Timestamp,
+  startAfter,
+  getCountFromServer
 } from 'firebase/firestore';
 
 const MEDIA_COLLECTION = 'media';
@@ -638,6 +641,49 @@ export const getVideos = async (limitCount = 20, videoType = null) => {
   }
 };
 
+// One page of published videos, newest first. Pass the returned cursor back in
+// to get the next page. Uses the same index as getVideos.
+export const getVideosPage = async (pageSize = 24, videoType = null, cursor = null) => {
+  try {
+    const normalizedVideoType = normalizeVideoType(videoType);
+    const constraints = [
+      ...(normalizedVideoType ? [where('videoType', '==', normalizedVideoType)] : []),
+      where('mediaType', '==', 'video'),
+      where('status', '==', 'published'),
+      orderBy('publishDate', 'desc'),
+      ...(cursor ? [startAfter(cursor)] : []),
+      limit(pageSize),
+    ];
+    const snapshot = await getDocs(query(collection(db, MEDIA_COLLECTION), ...constraints));
+    return {
+      success: true,
+      videos: snapshot.docs.map(mapVideoDocument),
+      cursor: snapshot.docs[snapshot.docs.length - 1] || cursor,
+      hasMore: snapshot.docs.length === pageSize,
+    };
+  } catch (error) {
+    console.error('Error getting videos page:', error);
+    return { success: false, videos: [], cursor, hasMore: false };
+  }
+};
+
+// Total number of published videos (optionally of one videoType)
+export const countPublishedVideos = async (videoType = null) => {
+  try {
+    const normalizedVideoType = normalizeVideoType(videoType);
+    const q = query(
+      collection(db, MEDIA_COLLECTION),
+      ...(normalizedVideoType ? [where('videoType', '==', normalizedVideoType)] : []),
+      where('mediaType', '==', 'video'),
+      where('status', '==', 'published')
+    );
+    return (await getCountFromServer(q)).data().count;
+  } catch (error) {
+    console.error('Error counting videos:', error);
+    return null;
+  }
+};
+
 // Get trending videos
 export const getTrendingVideos = async (limitCount = 6, videoType = 'standard') => {
   try {
@@ -801,6 +847,139 @@ export const toggleVideoLike = async (videoId) => {
     return { success: true };
   } catch (error) {
     console.error('Error toggling like:', error);
+    return { success: false, error: error.message };
+  }
+};
+// ==================== YOUTUBE IMPORT ====================
+
+// Categories shared by the media form and the YouTube import page
+export const MEDIA_CATEGORIES = [
+  { id: 'bhakti', name: 'Bhakti', slug: 'bhakti' },
+  { id: 'spiritual', name: 'Spiritual', slug: 'spiritual' },
+  { id: 'meditation', name: 'Meditation', slug: 'meditation' },
+  { id: 'devotional', name: 'Devotional', slug: 'devotional' },
+  { id: 'festival', name: 'Festival', slug: 'festival' },
+  { id: 'mantra', name: 'Mantra', slug: 'mantra' },
+  { id: 'aarti', name: 'Aarti', slug: 'aarti' },
+  { id: 'kirtan', name: 'Kirtan', slug: 'kirtan' },
+  { id: 'chalisa', name: 'Chalisa', slug: 'chalisa' },
+  { id: 'satsang', name: 'Satsang', slug: 'satsang' },
+];
+
+const chunk = (items, size) => {
+  const out = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+};
+
+// Which of these YouTube ids are already in the media collection
+export const getExistingMediaVideoIds = async (youtubeIds) => {
+  const existing = new Set();
+  const mediaRef = collection(db, MEDIA_COLLECTION);
+  const groups = chunk([...new Set(youtubeIds)].filter(Boolean), 30);
+  for (const wave of chunk(groups, 10)) {
+    const snapshots = await Promise.all(wave.map((ids) => getDocs(query(mediaRef, where('videoId', 'in', ids)))));
+    snapshots.forEach((snap) => snap.forEach((d) => existing.add(d.data().videoId)));
+  }
+  return existing;
+};
+
+const getExistingMediaSlugs = async (slugs) => {
+  const existing = new Set();
+  const mediaRef = collection(db, MEDIA_COLLECTION);
+  const groups = chunk([...new Set(slugs)].filter(Boolean), 30);
+  for (const wave of chunk(groups, 10)) {
+    const snapshots = await Promise.all(wave.map((part) => getDocs(query(mediaRef, where('slug', 'in', part)))));
+    snapshots.forEach((snap) => snap.forEach((d) => existing.add(d.data().slug)));
+  }
+  return existing;
+};
+
+// Slug from the title, max ~80 chars, without the channel name. Odia/Hindi-only
+// titles lose all their letters in generateSlug, so those become "video-<youtube id>".
+const importSlug = (title, videoId) => {
+  const cleaned = (title || '').replace(/aarambh\s*tv|aarambh/gi, ' ');
+  let slug = generateSlug(cleaned);
+  if (slug.length > 80) slug = slug.slice(0, 80).replace(/-[^-]*$/, '');
+  slug = slug.replace(/^-+|-+$/g, '');
+  const words = slug.split('-').filter((w) => /[a-z]/.test(w));
+  return words.length >= 2 ? slug : `video-${videoId.toLowerCase()}`;
+};
+
+/**
+ * Save many YouTube videos into the media collection at once.
+ * videos:  items from /api/youtube-import (videoId, title, description, tags,
+ *          thumbnail, duration, publishDate, publishedAt, videoType, youtubeUrl)
+ * options: { category, status, mediaType ('video' | 'bhajan'), artist }
+ * Videos whose YouTube id is already saved are skipped. Each document id is
+ * yt_<videoId>, so running two imports at once can't create duplicates.
+ */
+export const importYouTubeMedia = async (videos, options, onProgress) => {
+  try {
+    const { category = '', status = 'published', mediaType = 'video', artist = '' } = options || {};
+
+    const existingIds = await getExistingMediaVideoIds(videos.map((v) => v.videoId));
+    const toImport = videos.filter((v) => !existingIds.has(v.videoId));
+
+    const baseSlugs = toImport.map((v) => importSlug(v.title, v.videoId));
+    const takenSlugs = await getExistingMediaSlugs(baseSlugs);
+    const used = new Set();
+    const slugs = baseSlugs.map((slug, i) => {
+      let finalSlug = slug;
+      if (takenSlugs.has(finalSlug) || used.has(finalSlug)) {
+        finalSlug = `${slug}-${toImport[i].videoId.toLowerCase()}`;
+      }
+      used.add(finalSlug);
+      return finalSlug;
+    });
+
+    let saved = 0;
+    const groups = chunk(toImport.map((v, i) => ({ ...v, slug: slugs[i] })), 400);
+
+    for (const group of groups) {
+      const batch = writeBatch(db);
+      group.forEach((v) => {
+        const ytDate = v.publishedAt ? Timestamp.fromDate(new Date(v.publishedAt)) : serverTimestamp();
+        const description = v.description || '';
+        batch.set(doc(db, MEDIA_COLLECTION, `yt_${v.videoId}`), {
+          mediaType,
+          videoType: normalizeVideoType(v.videoType) || 'standard',
+          title: v.title,
+          slug: v.slug,
+          description,
+          category,
+          tags: v.tags || [],
+          status,
+          isFeatured: false,
+          isTrending: false,
+          // Keep YouTube's original upload date so old videos sort as old
+          publishDate: v.publishDate || new Date().toISOString().split('T')[0],
+          views: 0,
+          likes: 0,
+          youtubeUrl: v.youtubeUrl || `https://www.youtube.com/watch?v=${v.videoId}`,
+          videoId: v.videoId,
+          thumbnail: v.thumbnail || getYouTubeThumbnail(v.videoId),
+          duration: v.duration || '',
+          artist,
+          album: '',
+          metatitle: v.title,
+          metadesc: description.replace(/\s+/g, ' ').trim().substring(0, 160),
+          metakeywords: (v.tags || []).join(', '),
+          createdAt: ytDate,
+          updatedAt: serverTimestamp(),
+          publishedAt: status === 'published' ? ytDate : null,
+          importedFrom: 'youtube',
+          importedAt: serverTimestamp(),
+        });
+      });
+      await batch.commit();
+      saved += group.length;
+      onProgress?.(saved, toImport.length);
+    }
+
+    return { success: true, imported: saved, skipped: videos.length - toImport.length };
+  } catch (error) {
+    console.error('Error importing YouTube videos:', error);
     return { success: false, error: error.message };
   }
 };

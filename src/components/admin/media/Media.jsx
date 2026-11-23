@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Search, Filter } from "lucide-react";
+import { FaYoutube } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import { useThemeStore } from "@/lib/store/useThemeStore";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
@@ -125,6 +126,18 @@ export default function AdminMediaPage() {
             </p>
           </div>
         </div>
+        <div className="flex flex-wrap gap-3">
+        <button
+          onClick={() => router.push("/admin/media/import")}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+            isDark
+              ? "border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"
+              : "border-yellow-500/50 text-yellow-700 hover:bg-yellow-500/10"
+          }`}
+        >
+          <FaYoutube className="w-4 h-4" />
+          Import from YouTube
+        </button>
         <button
           onClick={handleCreate}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 font-semibold transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
@@ -132,6 +145,7 @@ export default function AdminMediaPage() {
           <Plus className="w-4 h-4" />
           Add New
         </button>
+        </div>
       </div>
 
       {/* Search and Filters */}
