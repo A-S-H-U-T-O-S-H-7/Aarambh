@@ -120,8 +120,18 @@ export default function ManageMediaPage() {
     if (formData.mediaType === 'bhajan') {
       if (!formData.artist?.trim()) newErrors.artist = "Artist name is required";
     }
-    
+
+    // YouTube auto-sync creates drafts without a category; pick one before publishing
+    if (formData.status === 'published' && !formData.category) {
+      newErrors.category = "Choose a category before publishing";
+    }
+
     setErrors(newErrors);
+    // Same as GPN: when the category is the only problem, say so directly
+    if (newErrors.category && Object.keys(newErrors).length === 1) {
+      toast.error(newErrors.category);
+      return false;
+    }
     return Object.keys(newErrors).length === 0;
   };
 

@@ -210,6 +210,7 @@ export default function MediaForm({ formData, errors, onInputChange, isDark, cat
                 ))}
               </select>
             )}
+            {errors.category && <p className="text-red-500 text-xs mt-1.5">{errors.category}</p>}
           </div>
         </div>
 

@@ -8,6 +8,7 @@ import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { useThemeStore } from "@/lib/store/useThemeStore";
 import AdminSidebar from "@/components/admin/layout/Sidebar";
 import AdminHeader from "@/components/admin/layout/Header";
+import YouTubeAutoSync from "@/components/admin/media/YouTubeAutoSync";
 
 export default function AdminLayout({ children }) {
   const { isAuthenticated, loading, verifySession } = useAdminAuthStore();
@@ -86,6 +87,7 @@ export default function AdminLayout({ children }) {
           },
         }}
       />
+      <YouTubeAutoSync />
       <AdminSidebar />
       <div className="lg:ml-60">
         <AdminHeader />

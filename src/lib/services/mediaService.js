@@ -17,7 +17,9 @@ import {
   writeBatch,
   Timestamp,
   startAfter,
-  getCountFromServer
+  getCountFromServer,
+  setDoc,
+  arrayUnion
 } from 'firebase/firestore';
 
 const MEDIA_COLLECTION = 'media';
@@ -305,7 +307,17 @@ export const getMediaById = async (mediaId) => {
 
 export const deleteMedia = async (mediaId) => {
   try {
-    await deleteDoc(doc(db, MEDIA_COLLECTION, mediaId));
+    const mediaRef = doc(db, MEDIA_COLLECTION, mediaId);
+    const existing = await getDoc(mediaRef);
+    const youtubeId = existing.exists() ? existing.data().videoId : null;
+
+    await deleteDoc(mediaRef);
+
+    // Remember it so YouTube auto-sync doesn't re-create it as a draft
+    if (youtubeId) {
+      setDoc(doc(db, 'settings', 'youtube_sync'), { dismissedIds: arrayUnion(youtubeId) }, { merge: true })
+        .catch((err) => console.error('Could not record dismissed YouTube video:', err));
+    }
     return { success: true };
   } catch (error) {
     console.error('Error deleting media:', error);

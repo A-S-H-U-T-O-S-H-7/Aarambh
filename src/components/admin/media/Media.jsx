@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Search, Filter } from "lucide-react";
+import { ArrowLeft, Plus, Search, Filter, RefreshCw } from "lucide-react";
 import { FaYoutube } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import { useThemeStore } from "@/lib/store/useThemeStore";
@@ -11,6 +11,7 @@ import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import MediaTable from "@/components/admin/media/MediaTable";
 import { getMedia, deleteMedia } from "@/lib/services/mediaService";
+import { syncYouTubeDrafts, countYouTubeDrafts, YOUTUBE_SYNC_EVENT } from "@/lib/services/youtubeSyncService";
 import Swal from "sweetalert2";
 
 export default function AdminMediaPage() {
@@ -54,6 +55,46 @@ export default function AdminMediaPage() {
     fetchMedia();
   }, [fetchMedia]);
 
+  // ── YouTube auto-sync ──
+  const [syncing, setSyncing] = useState(false);
+  const [youtubeDrafts, setYoutubeDrafts] = useState(0);
+
+  const refreshDraftCount = useCallback(() => {
+    countYouTubeDrafts().then(setYoutubeDrafts);
+  }, []);
+
+  useEffect(() => {
+    // /admin/media?status=draft (link from the "new drafts" toast)
+    const status = new URLSearchParams(window.location.search).get("status");
+    if (status === "draft" || status === "published") setStatusFilter(status);
+    refreshDraftCount();
+  }, [refreshDraftCount]);
+
+  useEffect(() => {
+    // Background sync created drafts -> refresh the list
+    const onSync = () => {
+      fetchMedia();
+      refreshDraftCount();
+    };
+    window.addEventListener(YOUTUBE_SYNC_EVENT, onSync);
+    return () => window.removeEventListener(YOUTUBE_SYNC_EVENT, onSync);
+  }, [fetchMedia, refreshDraftCount]);
+
+  const handleCheckYouTube = async () => {
+    setSyncing(true);
+    const result = await syncYouTubeDrafts(admin, { force: true });
+    setSyncing(false);
+    if (!result.success) return toast.error(result.error || "YouTube check failed");
+    if (result.created > 0) {
+      toast.success(`${result.created} new ${result.created === 1 ? "video" : "videos"} added as drafts`);
+      setStatusFilter("draft");
+      setCurrentPage(1);
+    } else {
+      toast("No new YouTube videos");
+    }
+    refreshDraftCount();
+  };
+
   const handleCreate = () => {
     router.push("/admin/media/manage/new");
   };
@@ -81,6 +122,7 @@ export default function AdminMediaPage() {
       try {
         const deleteResult = await deleteMedia(id, title);
         if (deleteResult.success) {
+          refreshDraftCount();
           // Log the delete activity
           await log({
             action: 'DELETE',
@@ -128,6 +170,18 @@ export default function AdminMediaPage() {
         </div>
         <div className="flex flex-wrap gap-3">
         <button
+          onClick={handleCheckYouTube}
+          disabled={syncing}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-60 ${
+            isDark
+              ? "border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"
+              : "border-yellow-500/50 text-yellow-700 hover:bg-yellow-500/10"
+          }`}
+        >
+          <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Checking..." : "Check YouTube now"}
+        </button>
+        <button
           onClick={() => router.push("/admin/media/import")}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
             isDark
@@ -147,6 +201,31 @@ export default function AdminMediaPage() {
         </button>
         </div>
       </div>
+
+      {/* Drafts waiting from YouTube */}
+      {youtubeDrafts > 0 && (
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-xl border ${
+            isDark ? "bg-amber-950/30 border-amber-700/50 text-amber-200" : "bg-amber-50 border-amber-200 text-amber-800"
+          }`}
+        >
+          <span className="text-sm">
+            🎬 <strong>{youtubeDrafts}</strong> {youtubeDrafts === 1 ? "video" : "videos"} from YouTube waiting as drafts.
+            Open each one, choose a category, then set status to Published.
+          </span>
+          {statusFilter !== "draft" && (
+            <button
+              onClick={() => {
+                setStatusFilter("draft");
+                setCurrentPage(1);
+              }}
+              className="text-sm font-medium underline cursor-pointer"
+            >
+              Show drafts
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="flex flex-wrap gap-4">
